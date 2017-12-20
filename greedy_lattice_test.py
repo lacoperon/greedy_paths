@@ -1,6 +1,7 @@
 import networkx as nx
 import random
 import math
+import operator
 
 # TODO: Try to code up a way to check if we're 'stuck' in local regions,
 #       although I don't think that's technically possible for unperturbed lattices
@@ -251,10 +252,13 @@ def choose_shortcut_partner(G, node, alpha):
 
 if __name__ == '__main__':
 
-    # TODO: Generalize this code (maybe inside a function) to generate a
-    #       lattice with an arbitrary dimension
-
     N = 100
+    dim = 3
+    grid_input = [int(N ** (1. / float(dim)))] * dim
+    actual_N = reduce(operator.mul, grid_input)
+
+    if actual_N != N:
+        print("********\n The "+str(dim)+" root of N is not an int\n********")
 
     random.seed(1)
 
@@ -264,8 +268,8 @@ if __name__ == '__main__':
     # G = nx.grid_graph([int(math.sqrt(N)),int(math.sqrt(N))], periodic=False)
 
     # randomly selects source, target nodes from G
-    src_index = random.randint(0,N)
-    trg_index = random.randint(0,N)
+    src_index = random.randint(0,actual_N)
+    trg_index = random.randint(0,actual_N)
 
     random.seed(1)
     print "Greedy route is: "
