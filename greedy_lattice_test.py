@@ -46,7 +46,7 @@ def compute_greedy_route(G, src, trg):
 
         # randomly selects greedy node to choose from
         # Note: this is naive; could lead to going in circles for certain
-        #       edge cases (should deal with later -- w a dict, perhaps)
+        #       edge cases (should deal with later -- w a set, perhaps)
         cur_node = random.sample(min_nei,1)[0]
         steps_count += 1
 
@@ -176,7 +176,9 @@ if __name__ == '__main__':
     G = nx.grid_graph([int(math.sqrt(N)),int(math.sqrt(N))], periodic=False)
     src = random.randint(0,N)
     trg = random.randint(0,N)
+    random.seed(1)
     print compute_greedy_route(G, G.nodes()[src], G.nodes()[trg])
+    random.seed(1)
     print compute_not_so_greedy_route(G, G.nodes()[src], G.nodes()[trg],num=2)
 
     # add shortcuts according to some rule
