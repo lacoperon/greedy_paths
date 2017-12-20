@@ -2,6 +2,10 @@ import networkx as nx
 import random
 import math
 
+# TODO: Try to code up a way to check if we're 'stuck' in local regions,
+#       although I don't think that's technically possible for unperturbed lattices
+#       (it is, however, for perturbed lattices)
+
 '''
 Input:  Two nodes (where nodes are represented by tuples of dimension length)
 Output: The Manhattan distance between the two nodes
@@ -62,14 +66,13 @@ Output:  pos_paths : node tuple (possible paths num steps away,
                                  or if trg is encountered, path to trg),
          encounters_trg : bool (whether or not the greedy search finds trg)
 '''
-# TODO: Here there be bugs
 def get_pos_ns_greedy_paths(G, cur_node, trg, num):
     # Counter for number of neighborhoods looked out
     k = 0
     # list of all kth-step paths (stored in a tuple) considered
     kth_paths = [ [cur_node] ]
     # set with all previously considered/visited nodes
-    already_visited = set(path)
+    already_visited = set()
     while k != num:
         # adds all of the previously greedily-visited nodes to the
         # already_visited set
@@ -87,22 +90,21 @@ def get_pos_ns_greedy_paths(G, cur_node, trg, num):
                 current_path.append(trg)
                 path.append(current_path)
                 steps_count = len(path) - 1
-                return path, True
+                return [path], True
 
             # List of neighbors, filtered to include only those not seen
             filt_neighbors = filter(lambda x : x not in already_visited,
                                 current_neighbors)
 
+            new_paths = []
             # Goes through all of the possible neighbours, adds them to the
             # possible paths considered for the next round of greedy search
             for nei in filt_neighbors:
-                print current_path
-                new_path = current_path.append(nei)
-                print current_path
+                new_path = current_path + [nei]
                 new_kth_paths.append(new_path)
-                print new_kth_paths
 
         kth_paths = new_kth_paths
+        print kth_paths
         k += 1
 
     return kth_paths, False
@@ -152,7 +154,7 @@ Output:  steps_count : int (number of steps in the greedy path computed),
 '''
 # TODO: Fix bugs (currently, code doesn't work -- fix this tomorrow!)
 #       (lo, we're getting close, I think...)
-def compute_not_so_greedy_route(G, src, trg, num=2):
+def compute_not_so_greedy_route(G, src, trg, num=1):
 
     assert num > 0 and isinstance(num, int)
     assert src != trg
@@ -180,8 +182,8 @@ if __name__ == '__main__':
     G = nx.grid_graph([int(math.sqrt(N)),int(math.sqrt(N))], periodic=False)
     src = random.randint(0,N)
     trg = random.randint(0,N)
-    print compute_greedy_route(G, G.nodes()[src], G.nodes()[trg])
-    print compute_not_so_greedy_route(G, G.nodes()[src], G.nodes()[trg],num=1)
+    # print compute_greedy_route(G, G.nodes()[src], G.nodes()[trg])
+    print compute_not_so_greedy_route(G, G.nodes()[src], G.nodes()[trg],num=2)
 
     # add shortcuts according to some rule
     # take a look at https://networkx.github.io/documentation/networkx-1.10/_modules/networkx/generators/geometric.html#navigable_small_world_graph
