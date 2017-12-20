@@ -253,7 +253,7 @@ def choose_shortcut_partner(G, node, alpha):
 if __name__ == '__main__':
 
     N = 100
-    dim = 3
+    dim = 1
     grid_input = [int(N ** (1. / float(dim)))] * dim
     actual_N = reduce(operator.mul, grid_input)
 
@@ -262,10 +262,7 @@ if __name__ == '__main__':
 
     random.seed(1)
 
-    G = nx.grid_graph([N], periodic=False)
-
-    # create 2D lattice
-    # G = nx.grid_graph([int(math.sqrt(N)),int(math.sqrt(N))], periodic=False)
+    G = nx.grid_graph(grid_input, periodic=False)
 
     # randomly selects source, target nodes from G
     src_index = random.randint(0,actual_N)
