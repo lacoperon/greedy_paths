@@ -116,7 +116,6 @@ Input:   G        : networkx graph object,
 
 Output:  path_taken : path from cur_node ... trg taken
 '''
-# TODO: To implement (here there be bugs)
 def select_ns_greedy_path(G, pos_paths, trg):
     pos_path_end_nodes = [x[-1] for x in pos_paths]
     pos_path_dists = map(lambda x : lattice_dist(x, trg),
