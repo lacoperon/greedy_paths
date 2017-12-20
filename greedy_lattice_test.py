@@ -54,6 +54,35 @@ def compute_greedy_route(G, src, trg):
     return steps_count, path
 
 '''
+The compute_not_so greedy_route function computes the 'greedy' route between
+two nodes, where you can 'look ahead' to num iterations of neighbors.
+(ie for num=1, this should run identically to compute_greedy_route)
+
+Input:   G    : networkx graph object,
+         src  : source node in G (a dim length tuple),
+         trg  : target node in G (a dim length tuple),
+         num  : int (number of links to look out in the not_so_greedy search)
+
+Output:  steps_count : int (number of steps in the greedy path computed),
+         path        : node tuple (the nodes along the greedy path computed)
+'''
+def compute_not_so_greedy_route(G, src, trg, num=1):
+
+    assert num > 0 and isinstance(num, int)
+    assert src != trg
+
+    path = [src]
+    cur_node = src
+
+    while cur_node != trg:
+        pos_greedy_paths = get_pos_ns_greedy_paths(G, cur_node, trg, num)
+        path_taken = select_ns_greedy_path(G, pos_greedy_paths, trg)
+        cur_node = path_taken[-1]
+        path += path_taken[1:]
+
+    return len(path)-1, path
+
+'''
 The get_pos_ns_greedy_paths outputs all possible paths, and whether the path
 contains trg. Helper function for compute_not_so_greedy_route.
 
@@ -90,6 +119,7 @@ def get_pos_ns_greedy_paths(G, cur_node, trg, num):
                 return [current_path]
 
             # List of neighbors, filtered to include only those not seen
+            # TODO: Parallelize
             filt_neighbors = filter(lambda x : x not in already_visited,
                                 current_neighbors)
 
@@ -116,12 +146,14 @@ Output:  path_taken : path from cur_node ... trg taken
 '''
 def select_ns_greedy_path(G, pos_paths, trg):
     pos_path_end_nodes = [x[-1] for x in pos_paths]
+    # TODO: Parallelize
     pos_path_dists = map(lambda x : lattice_dist(x, trg),
                             pos_path_end_nodes)
     min_dist = min(pos_path_dists)
     pos_path_indices = range(len(pos_path_dists))
 
     # list of possible indices corresp. to best 'not so greedy' paths
+    # TODO: Parallelize (although this is not critical)
     pos_path_indices = filter(lambda x : pos_path_dists[x]==min_dist,
                               pos_path_indices)
     # randomly selects one such 'not so greedy' paths
@@ -130,34 +162,6 @@ def select_ns_greedy_path(G, pos_paths, trg):
 
     return path
 
-'''
-The compute_not_so greedy_route function computes the 'greedy' route between
-two nodes, where you can 'look ahead' to num iterations of neighbors.
-(ie for num=1, this should run identically to compute_greedy_route)
-
-Input:   G    : networkx graph object,
-         src  : source node in G (a dim length tuple),
-         trg  : target node in G (a dim length tuple),
-         num  : int (number of links to look out in the not_so_greedy search)
-
-Output:  steps_count : int (number of steps in the greedy path computed),
-         path        : node tuple (the nodes along the greedy path computed)
-'''
-def compute_not_so_greedy_route(G, src, trg, num=1):
-
-    assert num > 0 and isinstance(num, int)
-    assert src != trg
-
-    path = [src]
-    cur_node = src
-
-    while cur_node != trg:
-        pos_greedy_paths = get_pos_ns_greedy_paths(G, cur_node, trg, num)
-        path_taken = select_ns_greedy_path(G, pos_greedy_paths, trg)
-        cur_node = path_taken[-1]
-        path += path_taken[1:]
-
-    return len(path)-1, path
 
 '''
 This function picks nodes to gain 'shortcuts', and picks the node which is on
@@ -166,18 +170,78 @@ the other side of that shortcut, according to some rules.
 Input: G : networkx graph object we're trying to perturb with shortcuts
        p : probability that a given node gets a shortcut
        alpha : float, constant for generating node partners)
-       mode  : str, what rules we're following for picking shortcut node partners
+       mode  : str, what rules are followed for picking shortcut node partners
                (default is 'oneforall',
                (IE each node has probability p of having a shortcut))
 
 Output: G' : updated (ie perturbed) networkx graph object
 '''
-def add_shortcuts(G, p=1, alpha, mode="oneforall"):
-# Note: The linked function assumes directed shortcuts, whereas I believe that
-#       grid_graph generates a 2D nondirected graph. Should bring up.
+# TODO: Test
+def add_shortcuts(G, p=1, alpha=2., mode="oneforall"):
+# Note: The linked function assumes directed shortcuts, and grid_graph does
+#       generate directed shortcuts, so an assumption of directionality is made
 # add shortcuts according to some rule
 # take a look at https://networkx.github.io/documentation/networkx-1.10/_modules/networkx/generators/geometric.html#navigable_small_world_graph
-    pass
+    assert mode in ["oneforall"]
+    assert p <= 1 and p > 0 # p=0 is uninteresting
+
+    if mode == "oneforall":
+        nodes = G.nodes()
+        # Each node is chosen (or not) to have a shortcut based on a
+        # Bernoulli trial (TODO: Parallelize)
+        chosen_nodes = filter(lambda x : random.random() < p, nodes)
+
+        # TODO: Parallelize (have parallel map generate a list of new edges from
+        #                    list of chosen nodes, and only then add to G )
+
+        new_edges = map(lambda x: (x, choose_shortcut_partner(G,x,alpha)),
+                                   chosen_nodes)
+        G.add_edges_from(new_edges)
+
+    return G
+
+'''
+Helper function for add_shortcuts. Chooses shortcut partner according to
+Kleinberg's rules
+ie Pr(node u being shortcut) ~ dist(chosen_node, u) ** (- alpha)
+
+Input : G     : networkx graph,
+        node  : chosen_node, for which we're trying to find a shortcut partner,
+        alpha : alpha value used for prob. calculation
+
+Output: partner_node : node's partner for the shortcut
+'''
+# TODO: Test
+def choose_shortcut_partner(G, node, alpha):
+    nodes = G.nodes()
+    nei_set = set(G.neighbors(node))
+    nei_set.add(node) #note that we also don't want a self-loop shortcut
+    # TODO: Parallelize
+    # All nodes that are not the chosen node's neighbors
+    not_neighbors = filter(lambda x : x not in nei_set, nodes)
+    # Distance between the chosen node and its 'not neighbors'
+    # TODO: Parallelize
+    not_neighbor_dists = map(lambda x : lattice_dist(x, node),
+                             not_neighbors)
+    # Note that, according to Kleinberg (2000)'s logic, the probability
+    # of connecting the chosen_node to a node in not neighbors should
+    # be proportional to r ** - alpha
+    # TODO: Parallelize
+    prop_to_partner_prob = map(lambda x : x ** (- alpha),
+                               not_neighbor_dists)
+    total = sum(prop_to_partner_prob)
+    rand_val = total * random.random()
+
+    i = 0
+    cdf_before_i = 0
+    while i < len(prop_to_partner_prob):
+        cdf_after_i = cdf_before_i + prop_to_partner_prob[i]
+        if cdf_before_i <= rand_val and cdf_after_i <= rand_val:
+            return not_neighbors[i]
+
+        cdf_before_i = cdf_after_i
+        i += 1
+
 
 if __name__ == '__main__':
 
@@ -196,10 +260,14 @@ if __name__ == '__main__':
     trg_index = random.randint(0,N)
 
     random.seed(1)
+    print "Greedy route is: "
     print compute_greedy_route(G, G.nodes()[src_index], G.nodes()[trg_index])
     random.seed(1)
+    print "Not so greedy route is: "
     print compute_not_so_greedy_route(G, G.nodes()[src_index],
                                       G.nodes()[trg_index],num=2)
+
+    add_shortcuts(G)
 
 
     # see how greeedy paths are doing (compared to actual shortest paths)
