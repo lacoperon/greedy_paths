@@ -145,8 +145,6 @@ Input:   G    : networkx graph object,
 Output:  steps_count : int (number of steps in the greedy path computed),
          path        : node tuple (the nodes along the greedy path computed)
 '''
-# TODO: Fix bugs (currently, code doesn't work -- fix this tomorrow!)
-#       (lo, we're getting close, I think...)
 def compute_not_so_greedy_route(G, src, trg, num=1):
 
     assert num > 0 and isinstance(num, int)
