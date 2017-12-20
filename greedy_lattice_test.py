@@ -6,9 +6,6 @@ import math
 #       although I don't think that's technically possible for unperturbed lattices
 #       (it is, however, for perturbed lattices)
 
-# TODO: Fix path return logic (currently returns an path, but not a particularly good one)
-
-
 '''
 Input:  Two nodes (where nodes are represented by tuples of dimension length)
 Output: The Manhattan distance between the two nodes
@@ -180,7 +177,7 @@ if __name__ == '__main__':
     src = random.randint(0,N)
     trg = random.randint(0,N)
     print compute_greedy_route(G, G.nodes()[src], G.nodes()[trg])
-    print compute_not_so_greedy_route(G, G.nodes()[src], G.nodes()[trg],num=1)
+    print compute_not_so_greedy_route(G, G.nodes()[src], G.nodes()[trg],num=2)
 
     # add shortcuts according to some rule
     # take a look at https://networkx.github.io/documentation/networkx-1.10/_modules/networkx/generators/geometric.html#navigable_small_world_graph
