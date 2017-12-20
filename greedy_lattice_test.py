@@ -168,14 +168,20 @@ def compute_not_so_greedy_route(G, src, trg, num=1):
 
 if __name__ == '__main__':
 
+    # TODO: Generalize this code (maybe inside a function) to generate a
+    #       lattice with an arbitrary dimension
+
     N = 100
 
     random.seed(1)
 
     # create 2D lattice
     G = nx.grid_graph([int(math.sqrt(N)),int(math.sqrt(N))], periodic=False)
+
+    # randomly selects source, target nodes from G
     src = random.randint(0,N)
     trg = random.randint(0,N)
+
     random.seed(1)
     print compute_greedy_route(G, G.nodes()[src], G.nodes()[trg])
     random.seed(1)
