@@ -64,7 +64,6 @@ Input:   G        : networkx graph object,
 
 Output:  pos_paths : node tuple (possible paths num steps away,
                                  or if trg is encountered, path to trg),
-         encounters_trg : bool (whether or not the greedy search finds trg)
 '''
 def get_pos_ns_greedy_paths(G, cur_node, trg, num):
     # Counter for number of neighborhoods looked out
@@ -88,7 +87,7 @@ def get_pos_ns_greedy_paths(G, cur_node, trg, num):
             # end condition
             if trg in current_neighbors:
                 current_path.append(trg)
-                return [current_path], True
+                return [current_path]
 
             # List of neighbors, filtered to include only those not seen
             filt_neighbors = filter(lambda x : x not in already_visited,
@@ -104,7 +103,7 @@ def get_pos_ns_greedy_paths(G, cur_node, trg, num):
         kth_paths = new_kth_paths
         k += 1
 
-    return kth_paths, False
+    return kth_paths
 
 '''
 The select_ns_greedy_path is a helper function, which chooses the
@@ -153,9 +152,7 @@ def compute_not_so_greedy_route(G, src, trg, num=1):
     cur_node = src
 
     while cur_node != trg:
-        pos_greedy_paths, atTrg = get_pos_ns_greedy_paths(G, cur_node, trg, num)
-        if atTrg:
-            path_taken = pos_greedy_paths[0]
+        pos_greedy_paths = get_pos_ns_greedy_paths(G, cur_node, trg, num)
         path_taken = select_ns_greedy_path(G, pos_greedy_paths, trg)
         cur_node = path_taken[-1]
         path += path_taken[1:]
