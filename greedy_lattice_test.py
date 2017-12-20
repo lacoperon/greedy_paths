@@ -62,6 +62,7 @@ Output:  pos_paths : node tuple (possible paths num steps away,
                                  or if trg is encountered, path to trg),
          encounters_trg : bool (whether or not the greedy search finds trg)
 '''
+# TODO: Here there be bugs
 def get_pos_ns_greedy_paths(G, cur_node, trg, num):
     # Counter for number of neighborhoods looked out
     k = 0
@@ -115,6 +116,7 @@ Input:   G        : networkx graph object,
 
 Output:  path_taken : path from cur_node ... trg taken
 '''
+# TODO: To implement (here there be bugs)
 def select_ns_greedy_path(G, pos_paths, trg):
     pass
 
