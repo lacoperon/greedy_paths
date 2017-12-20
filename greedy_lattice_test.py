@@ -11,7 +11,11 @@ Input:  Two nodes (where nodes are represented by tuples of dimension length)
 Output: The Manhattan distance between the two nodes
 '''
 def lattice_dist(node1, node2):
-    return sum((abs(b-a) for a,b in zip(node1,node2)))
+    if isinstance(node1, int):
+        assert isinstance(node2, int)
+        return node2 - node1
+    else:
+        return sum((abs(b-a) for a,b in zip(node1,node2)))
 
 '''
 The compute_greedy_route function computes the 'greedy' route between two nodes,
@@ -254,8 +258,10 @@ if __name__ == '__main__':
 
     random.seed(1)
 
+    G = nx.grid_graph([N], periodic=False)
+
     # create 2D lattice
-    G = nx.grid_graph([int(math.sqrt(N)),int(math.sqrt(N))], periodic=False)
+    # G = nx.grid_graph([int(math.sqrt(N)),int(math.sqrt(N))], periodic=False)
 
     # randomly selects source, target nodes from G
     src_index = random.randint(0,N)
