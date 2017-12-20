@@ -50,6 +50,34 @@ def compute_greedy_route(G, src, trg):
     return steps_count, path
 
 '''
+The get_pos_ns_greedy_paths outputs all possible paths, and whether the path
+contains trg. Helper function for compute_not_so_greedy_route.
+
+Input:   G        : networkx graph object,
+         cur_node : current node in G (a dim length tuple),
+         trg      : target node in G  (a dim length tuple),
+         num      : int (# of links to look out in the not_so_greedy search)
+
+Output:  pos_paths : node tuple (possible paths num steps away,
+                                 or if trg is encountered, path to trg),
+         encounters_trg : bool (whether or not the greedy search finds trg)
+'''
+def get_pos_ns_greedy_paths:
+    pass
+
+'''
+The select_ns_greedy_path is a helper function, which chooses the
+'not so greedy' path to take (based on minimizing Manhattan distance to trg)
+Input:   G        : networkx graph object,
+         pos_paths: possible greedy paths towards the target
+         trg      : target node in G (a dim length tuple),
+
+Output:  pos_paths : node tuple (possible paths
+'''
+def select_ns_greedy_path:
+    pass
+
+'''
 The compute_not_so greedy_route function computes the 'greedy' route between
 two nodes, where you can 'look ahead' to num iterations of neighbors.
 (ie for num=1, this should run identically to compute_greedy_route)
@@ -62,7 +90,6 @@ Input:   G    : networkx graph object,
 Output:  steps_count : int (number of steps in the greedy path computed),
          path        : node tuple (the nodes along the greedy path computed)
 '''
-
 # TODO: Fix bugs (currently, code doesn't work -- fix this tomorrow!)
 #       (lo, we're getting close, I think...)
 def compute_not_so_greedy_route(G, src, trg, num=2):
