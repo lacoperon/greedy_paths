@@ -159,6 +159,26 @@ def compute_not_so_greedy_route(G, src, trg, num=1):
 
     return len(path)-1, path
 
+'''
+This function picks nodes to gain 'shortcuts', and picks the node which is on
+the other side of that shortcut, according to some rules.
+
+Input: G : networkx graph object we're trying to perturb with shortcuts
+       p : probability that a given node gets a shortcut
+       alpha : float, constant for generating node partners)
+       mode  : str, what rules we're following for picking shortcut node partners
+               (default is 'oneforall',
+               (IE each node has probability p of having a shortcut))
+
+Output: G' : updated (ie perturbed) networkx graph object
+'''
+def add_shortcuts(G, p=1, alpha, mode="oneforall"):
+# Note: The linked function assumes directed shortcuts, whereas I believe that
+#       grid_graph generates a 2D nondirected graph. Should bring up.
+# add shortcuts according to some rule
+# take a look at https://networkx.github.io/documentation/networkx-1.10/_modules/networkx/generators/geometric.html#navigable_small_world_graph
+    pass
+
 if __name__ == '__main__':
 
     # TODO: Generalize this code (maybe inside a function) to generate a
@@ -181,8 +201,6 @@ if __name__ == '__main__':
     print compute_not_so_greedy_route(G, G.nodes()[src_index],
                                       G.nodes()[trg_index],num=2)
 
-    # add shortcuts according to some rule
-    # take a look at https://networkx.github.io/documentation/networkx-1.10/_modules/networkx/generators/geometric.html#navigable_small_world_graph
 
     # see how greeedy paths are doing (compared to actual shortest paths)
     # compare paths generated to actual shortest paths (nx implements this)
