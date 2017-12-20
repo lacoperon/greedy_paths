@@ -11,7 +11,7 @@ def lattice_dist(node1, node2):
 
 '''
 The compute_greedy_route function computes the 'greedy' route between two nodes,
-where you can 'look ahead' to only your neighbours
+where you can 'look ahead' to only your neighbors
 (ie like the Kleinberg (2000) navigable small world networks paper)
 
 Input:   G    : networkx graph object,
@@ -35,16 +35,23 @@ def compute_greedy_route(G, src, trg):
             curr_d = lattice_dist(nei,trg)
             if min_d == -1 or curr_d < min_d:
                 min_d = curr_d
-                min_nei = nei
+                min_nei = [nei]
 
-        curr_node = min_nei
+            if curr_d == min_d:
+                min_nei.append(nei)
+
+        # randomly selects greedy node to choose from
+        # Note: this is naive; could lead to going in circles for certain
+        #       edge cases (should deal with later -- w a dict, perhaps)
+        curr_node = random.sample(min_nei,1)[0]
         steps_count += 1
 
     path.append(trg)
     return steps_count, path
+
 '''
 The compute_not_so greedy_route function computes the 'greedy' route between
-two nodes, where you can 'look ahead' to num iterations of neighbours.
+two nodes, where you can 'look ahead' to num iterations of neighbors.
 (ie for num=1, this should run identically to compute_greedy_route)
 
 Input:   G    : networkx graph object,
@@ -56,43 +63,88 @@ Output:  steps_count : int (number of steps in the greedy path computed),
          path        : node tuple (the nodes along the greedy path computed)
 '''
 
-# TODO: Generalize the code to more than 2 lookout dimensions.
-#       (ie it's one thing to write your fn header to be generalized,
-#        and it's another for the code to actually be generalized)
+# TODO: Fix bugs (currently, code doesn't work -- fix this tomorrow!)
+#       (lo, we're getting close, I think...)
 def compute_not_so_greedy_route(G, src, trg, num=2):
-    pass
-    # assert num == 2 # function is not yet generalized
-    # assert num > 0 and isinstance(num, int)
-    #
-    #
-    # # here you are allowed to look at your neighbors' neighbors
-    # steps_count = 0
-    # path = []
-    # curr_node = src
-    #
-    # while curr_node != trg:
-    #
-    #     # list of all ith-step paths considered
-    #     i = 0
-    #     kth_paths = [curr_node]
-    #
-    #     # dictionary with all previously visited nodes
-    #     already_visited = {curr_node : True}
-    #     while i != num:
-    #         # already_greedily_considered = {dict for list with all kth_apth nodes as true}
-    #         # The nodes at the end of each of the ith-step paths considered
-    #         end_nodes = [x[-1] for x in kth_paths]
-    #         # A tuple list, of the neighbours of each of the nodes in end_nodes
-    #         end_node_nei = [G.neighbors(node) for node in end_nodes]
-    #         for i in range(end_nodes):
+
+    assert num > 0 and isinstance(num, int)
+
+    path = []
+    curr_node = src
+
+    while curr_node != trg:
+
+        '''
+        Part I: Generates all possible greedy num-neighbor paths, and puts
+                them into the kth_paths list
+        '''
+
+        # Counter for number of neighborhoods looked out
+        k = 0
+        # list of all kth-step paths (stored in a tuple) considered
+        kth_paths = [ [curr_node] ]
+        # set with all previously considered/visited nodes
+        already_visited = set(path)
+        while k != num:
+            # adds all of the previously greedily-visited nodes to the
+            # already_visited set
+            end_nodes = [x[-1] for x in kth_paths]
+            print end_nodes
+            already_visited.update(end_nodes)
+            new_kth_paths = []
+            for j in range(len(end_nodes)):
+                current_path = kth_paths[j]
+                current_node = end_nodes[j]
+                current_neighbors = G.neighbors(current_node)
+
+                # end condition
+                if trg in current_neighbors:
+                    current_path.append(trg)
+                    path.append(current_path)
+                    steps_count = len(path) - 1
+                    return steps_count, path
+
+                # List of neighbors, filtered to include only those not seen
+                filt_neighbors = filter(lambda x : x not in already_visited,
+                                    current_neighbors)
+
+                # Goes through all of the possible neighbours, adds them to the
+                # possible paths considered for the next round of greedy search,
+                # or in the path-choosing in Part II.
+                for nei in filt_neighbors:
+                    print current_path
+                    new_path = current_path.append(nei)
+                    print current_path
+                    new_kth_paths.append(new_path)
+                    print new_kth_paths
 
 
+            kth_paths = new_kth_paths
+            k += 1
+            print kth_paths
 
+        '''
+        Part II: Considers all possible num-step paths in kth_paths,
+                 and chooses the one that has the lowest Manhattan distance to
+                 trg
+        '''
 
+        # Note that, at this point, kth_paths is equivalent to all possible
+        # greedy (or rather, 'not so greedy') paths under consideration
+        ns_greedy_paths = kth_paths
+        print ns_greedy_paths
+        ns_greedy_path_end_nodes = [x[-1] for x in ns_greedy_paths]
+        ns_greedy_path_dists = map(lambda x : lattice_dist(x, trg),
+                                ns_greedy_path_end_nodes)
+        min_dist = min(ns_greedy_path_dists)
+        pos_path_indices = range(len(ns_greedy_paths_dists))
 
-
-        # find the neighbor's neighbor with minimum grid distance from the target
-        # min_d, min_num_nei = -1 , -1
+        # list of possible indices corresp. to best 'not so greedy' paths
+        pos_path_indices = filter(lambda x : ns_greedy_path_dists[x]==min_dist,
+                                  pos_path_indices)
+        # randomly selects one such 'not so greedy' paths
+        chosen_index = random.sample(pos_path_indices, 1)[0]
+        path = ns_greedy_paths[chosen_index]
 
 if __name__ == '__main__':
 
@@ -102,7 +154,10 @@ if __name__ == '__main__':
 
     # create 2D lattice
     G = nx.grid_graph([int(math.sqrt(N)),int(math.sqrt(N))], periodic=False)
-    print compute_greedy_route(G, G.nodes()[random.randint(0,N)], G.nodes()[random.randint(0,N)])
+    src = random.randint(0,N)
+    trg = random.randint(0,N)
+    print compute_greedy_route(G, G.nodes()[src], G.nodes()[trg])
+    print compute_not_so_greedy_route(G, G.nodes()[src], G.nodes()[trg],num=1)
 
     # add shortcuts according to some rule
     # take a look at https://networkx.github.io/documentation/networkx-1.10/_modules/networkx/generators/geometric.html#navigable_small_world_graph
