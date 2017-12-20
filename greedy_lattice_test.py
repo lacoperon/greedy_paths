@@ -196,6 +196,8 @@ def add_shortcuts(G, p=1, alpha=2., mode="oneforall"):
 
         new_edges = map(lambda x: (x, choose_shortcut_partner(G,x,alpha)),
                                    chosen_nodes)
+        print new_edges #currently contains NoneTypes, so we should fix this
+        print len(new_edges)
         G.add_edges_from(new_edges)
 
     return G
