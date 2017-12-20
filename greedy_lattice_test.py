@@ -77,6 +77,8 @@ def compute_not_so_greedy_route(G, src, trg, num=2):
         '''
         Part I: Generates all possible greedy num-neighbor paths, and puts
                 them into the kth_paths list
+
+        TODO: Refactor this into a helper function (will help w debugging)
         '''
 
         # Counter for number of neighborhoods looked out
@@ -127,6 +129,9 @@ def compute_not_so_greedy_route(G, src, trg, num=2):
         Part II: Considers all possible num-step paths in kth_paths,
                  and chooses the one that has the lowest Manhattan distance to
                  trg
+
+        TODO: Also refactor this into its own separate function. This would
+              make the algorithmic logic wayyyyyy clearer
         '''
 
         # Note that, at this point, kth_paths is equivalent to all possible
