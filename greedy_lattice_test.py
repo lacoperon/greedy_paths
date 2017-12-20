@@ -6,6 +6,9 @@ import math
 #       although I don't think that's technically possible for unperturbed lattices
 #       (it is, however, for perturbed lattices)
 
+# TODO: Fix path return logic (currently returns an path, but not a particularly good one)
+
+
 '''
 Input:  Two nodes (where nodes are represented by tuples of dimension length)
 Output: The Manhattan distance between the two nodes
@@ -77,7 +80,7 @@ def get_pos_ns_greedy_paths(G, cur_node, trg, num):
         # adds all of the previously greedily-visited nodes to the
         # already_visited set
         end_nodes = [x[-1] for x in kth_paths]
-        print end_nodes
+        # print end_nodes
         already_visited.update(end_nodes)
         new_kth_paths = []
         for j in range(len(end_nodes)):
@@ -88,9 +91,7 @@ def get_pos_ns_greedy_paths(G, cur_node, trg, num):
             # end condition
             if trg in current_neighbors:
                 current_path.append(trg)
-                path.append(current_path)
-                steps_count = len(path) - 1
-                return [path], True
+                return [current_path], True
 
             # List of neighbors, filtered to include only those not seen
             filt_neighbors = filter(lambda x : x not in already_visited,
@@ -104,7 +105,7 @@ def get_pos_ns_greedy_paths(G, cur_node, trg, num):
                 new_kth_paths.append(new_path)
 
         kth_paths = new_kth_paths
-        print kth_paths
+        # print kth_paths
         k += 1
 
     return kth_paths, False
@@ -120,24 +121,20 @@ Output:  path_taken : path from cur_node ... trg taken
 '''
 # TODO: To implement (here there be bugs)
 def select_ns_greedy_path(G, pos_paths, trg):
-    pass
+    pos_path_end_nodes = [x[-1] for x in pos_paths]
+    pos_path_dists = map(lambda x : lattice_dist(x, trg),
+                            pos_path_end_nodes)
+    min_dist = min(pos_path_dists)
+    pos_path_indices = range(len(pos_path_dists))
 
-        # # Note that, at this point, kth_paths is equivalent to all possible
-        # # greedy (or rather, 'not so greedy') paths under consideration
-        # ns_greedy_paths = kth_paths
-        # print ns_greedy_paths
-        # ns_greedy_path_end_nodes = [x[-1] for x in ns_greedy_paths]
-        # ns_greedy_path_dists = map(lambda x : lattice_dist(x, trg),
-        #                         ns_greedy_path_end_nodes)
-        # min_dist = min(ns_greedy_path_dists)
-        # pos_path_indices = range(len(ns_greedy_paths_dists))
-        #
-        # # list of possible indices corresp. to best 'not so greedy' paths
-        # pos_path_indices = filter(lambda x : ns_greedy_path_dists[x]==min_dist,
-        #                           pos_path_indices)
-        # # randomly selects one such 'not so greedy' paths
-        # chosen_index = random.sample(pos_path_indices, 1)[0]
-        # path = ns_greedy_paths[chosen_index]
+    # list of possible indices corresp. to best 'not so greedy' paths
+    pos_path_indices = filter(lambda x : pos_path_dists[x]==min_dist,
+                              pos_path_indices)
+    # randomly selects one such 'not so greedy' paths
+    chosen_index = random.sample(pos_path_indices, 1)[0]
+    path = pos_paths[chosen_index]
+
+    return path
 
 '''
 The compute_not_so greedy_route function computes the 'greedy' route between
@@ -183,7 +180,7 @@ if __name__ == '__main__':
     src = random.randint(0,N)
     trg = random.randint(0,N)
     # print compute_greedy_route(G, G.nodes()[src], G.nodes()[trg])
-    print compute_not_so_greedy_route(G, G.nodes()[src], G.nodes()[trg],num=2)
+    print compute_not_so_greedy_route(G, G.nodes()[src], G.nodes()[trg],num=1)
 
     # add shortcuts according to some rule
     # take a look at https://networkx.github.io/documentation/networkx-1.10/_modules/networkx/generators/geometric.html#navigable_small_world_graph
