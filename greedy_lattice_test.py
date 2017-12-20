@@ -24,14 +24,14 @@ Output:  steps_count : int (number of steps in the greedy path computed),
 def compute_greedy_route(G, src, trg):
     steps_count = 0
     path = []
-    curr_node = src
+    cur_node = src
 
-    while curr_node != trg:
-        path.append(curr_node)
+    while cur_node != trg:
+        path.append(cur_node)
 
         # find the neighbor with minimum grid distance from the target
         min_d, min_nei = -1 , -1
-        for nei in G.neighbors(curr_node):
+        for nei in G.neighbors(cur_node):
             curr_d = lattice_dist(nei,trg)
             if min_d == -1 or curr_d < min_d:
                 min_d = curr_d
@@ -43,7 +43,7 @@ def compute_greedy_route(G, src, trg):
         # randomly selects greedy node to choose from
         # Note: this is naive; could lead to going in circles for certain
         #       edge cases (should deal with later -- w a dict, perhaps)
-        curr_node = random.sample(min_nei,1)[0]
+        cur_node = random.sample(min_nei,1)[0]
         steps_count += 1
 
     path.append(trg)
@@ -62,8 +62,49 @@ Output:  pos_paths : node tuple (possible paths num steps away,
                                  or if trg is encountered, path to trg),
          encounters_trg : bool (whether or not the greedy search finds trg)
 '''
-def get_pos_ns_greedy_paths:
-    pass
+def get_pos_ns_greedy_paths(G, cur_node, trg, num):
+    # Counter for number of neighborhoods looked out
+    k = 0
+    # list of all kth-step paths (stored in a tuple) considered
+    kth_paths = [ [cur_node] ]
+    # set with all previously considered/visited nodes
+    already_visited = set(path)
+    while k != num:
+        # adds all of the previously greedily-visited nodes to the
+        # already_visited set
+        end_nodes = [x[-1] for x in kth_paths]
+        print end_nodes
+        already_visited.update(end_nodes)
+        new_kth_paths = []
+        for j in range(len(end_nodes)):
+            current_path = kth_paths[j]
+            current_node = end_nodes[j]
+            current_neighbors = G.neighbors(current_node)
+
+            # end condition
+            if trg in current_neighbors:
+                current_path.append(trg)
+                path.append(current_path)
+                steps_count = len(path) - 1
+                return path, True
+
+            # List of neighbors, filtered to include only those not seen
+            filt_neighbors = filter(lambda x : x not in already_visited,
+                                current_neighbors)
+
+            # Goes through all of the possible neighbours, adds them to the
+            # possible paths considered for the next round of greedy search
+            for nei in filt_neighbors:
+                print current_path
+                new_path = current_path.append(nei)
+                print current_path
+                new_kth_paths.append(new_path)
+                print new_kth_paths
+
+        kth_paths = new_kth_paths
+        k += 1
+
+    return kth_paths, False
 
 '''
 The select_ns_greedy_path is a helper function, which chooses the
@@ -72,10 +113,27 @@ Input:   G        : networkx graph object,
          pos_paths: possible greedy paths towards the target
          trg      : target node in G (a dim length tuple),
 
-Output:  pos_paths : node tuple (possible paths
+Output:  path_taken : path from cur_node ... trg taken
 '''
-def select_ns_greedy_path:
+def select_ns_greedy_path(G, pos_paths, trg):
     pass
+
+        # # Note that, at this point, kth_paths is equivalent to all possible
+        # # greedy (or rather, 'not so greedy') paths under consideration
+        # ns_greedy_paths = kth_paths
+        # print ns_greedy_paths
+        # ns_greedy_path_end_nodes = [x[-1] for x in ns_greedy_paths]
+        # ns_greedy_path_dists = map(lambda x : lattice_dist(x, trg),
+        #                         ns_greedy_path_end_nodes)
+        # min_dist = min(ns_greedy_path_dists)
+        # pos_path_indices = range(len(ns_greedy_paths_dists))
+        #
+        # # list of possible indices corresp. to best 'not so greedy' paths
+        # pos_path_indices = filter(lambda x : ns_greedy_path_dists[x]==min_dist,
+        #                           pos_path_indices)
+        # # randomly selects one such 'not so greedy' paths
+        # chosen_index = random.sample(pos_path_indices, 1)[0]
+        # path = ns_greedy_paths[chosen_index]
 
 '''
 The compute_not_so greedy_route function computes the 'greedy' route between
@@ -95,88 +153,20 @@ Output:  steps_count : int (number of steps in the greedy path computed),
 def compute_not_so_greedy_route(G, src, trg, num=2):
 
     assert num > 0 and isinstance(num, int)
+    assert src != trg
 
     path = []
-    curr_node = src
+    cur_node = src
 
-    while curr_node != trg:
+    while cur_node != trg:
+        pos_greedy_paths, atTrg = get_pos_ns_greedy_paths(G, cur_node, trg, num)
+        if atTrg:
+            path_taken = pos_greedy_paths[0]
+        path_taken = select_ns_greedy_path(G, pos_greedy_paths, trg)
+        cur_node = path_taken[-1]
+        path.append(path_taken[1:])
 
-        '''
-        Part I: Generates all possible greedy num-neighbor paths, and puts
-                them into the kth_paths list
-
-        TODO: Refactor this into a helper function (will help w debugging)
-        '''
-
-        # Counter for number of neighborhoods looked out
-        k = 0
-        # list of all kth-step paths (stored in a tuple) considered
-        kth_paths = [ [curr_node] ]
-        # set with all previously considered/visited nodes
-        already_visited = set(path)
-        while k != num:
-            # adds all of the previously greedily-visited nodes to the
-            # already_visited set
-            end_nodes = [x[-1] for x in kth_paths]
-            print end_nodes
-            already_visited.update(end_nodes)
-            new_kth_paths = []
-            for j in range(len(end_nodes)):
-                current_path = kth_paths[j]
-                current_node = end_nodes[j]
-                current_neighbors = G.neighbors(current_node)
-
-                # end condition
-                if trg in current_neighbors:
-                    current_path.append(trg)
-                    path.append(current_path)
-                    steps_count = len(path) - 1
-                    return steps_count, path
-
-                # List of neighbors, filtered to include only those not seen
-                filt_neighbors = filter(lambda x : x not in already_visited,
-                                    current_neighbors)
-
-                # Goes through all of the possible neighbours, adds them to the
-                # possible paths considered for the next round of greedy search,
-                # or in the path-choosing in Part II.
-                for nei in filt_neighbors:
-                    print current_path
-                    new_path = current_path.append(nei)
-                    print current_path
-                    new_kth_paths.append(new_path)
-                    print new_kth_paths
-
-
-            kth_paths = new_kth_paths
-            k += 1
-            print kth_paths
-
-        '''
-        Part II: Considers all possible num-step paths in kth_paths,
-                 and chooses the one that has the lowest Manhattan distance to
-                 trg
-
-        TODO: Also refactor this into its own separate function. This would
-              make the algorithmic logic wayyyyyy clearer
-        '''
-
-        # Note that, at this point, kth_paths is equivalent to all possible
-        # greedy (or rather, 'not so greedy') paths under consideration
-        ns_greedy_paths = kth_paths
-        print ns_greedy_paths
-        ns_greedy_path_end_nodes = [x[-1] for x in ns_greedy_paths]
-        ns_greedy_path_dists = map(lambda x : lattice_dist(x, trg),
-                                ns_greedy_path_end_nodes)
-        min_dist = min(ns_greedy_path_dists)
-        pos_path_indices = range(len(ns_greedy_paths_dists))
-
-        # list of possible indices corresp. to best 'not so greedy' paths
-        pos_path_indices = filter(lambda x : ns_greedy_path_dists[x]==min_dist,
-                                  pos_path_indices)
-        # randomly selects one such 'not so greedy' paths
-        chosen_index = random.sample(pos_path_indices, 1)[0]
-        path = ns_greedy_paths[chosen_index]
+    return len(path), path
 
 if __name__ == '__main__':
 
