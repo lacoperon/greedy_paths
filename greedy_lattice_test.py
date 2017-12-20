@@ -77,7 +77,7 @@ def get_pos_ns_greedy_paths(G, cur_node, trg, num):
         # adds all of the previously greedily-visited nodes to the
         # already_visited set
         end_nodes = [x[-1] for x in kth_paths]
-        # print end_nodes
+
         already_visited.update(end_nodes)
         new_kth_paths = []
         for j in range(len(end_nodes)):
@@ -102,7 +102,6 @@ def get_pos_ns_greedy_paths(G, cur_node, trg, num):
                 new_kth_paths.append(new_path)
 
         kth_paths = new_kth_paths
-        # print kth_paths
         k += 1
 
     return kth_paths, False
@@ -176,13 +175,14 @@ if __name__ == '__main__':
     G = nx.grid_graph([int(math.sqrt(N)),int(math.sqrt(N))], periodic=False)
 
     # randomly selects source, target nodes from G
-    src = random.randint(0,N)
-    trg = random.randint(0,N)
+    src_index = random.randint(0,N)
+    trg_index = random.randint(0,N)
 
     random.seed(1)
-    print compute_greedy_route(G, G.nodes()[src], G.nodes()[trg])
+    print compute_greedy_route(G, G.nodes()[src_index], G.nodes()[trg_index])
     random.seed(1)
-    print compute_not_so_greedy_route(G, G.nodes()[src], G.nodes()[trg],num=2)
+    print compute_not_so_greedy_route(G, G.nodes()[src_index],
+                                      G.nodes()[trg_index],num=2)
 
     # add shortcuts according to some rule
     # take a look at https://networkx.github.io/documentation/networkx-1.10/_modules/networkx/generators/geometric.html#navigable_small_world_graph
