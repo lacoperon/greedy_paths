@@ -156,7 +156,7 @@ def compute_not_so_greedy_route(G, src, trg, num=1):
     assert num > 0 and isinstance(num, int)
     assert src != trg
 
-    path = []
+    path = [src]
     cur_node = src
 
     while cur_node != trg:
@@ -165,9 +165,9 @@ def compute_not_so_greedy_route(G, src, trg, num=1):
             path_taken = pos_greedy_paths[0]
         path_taken = select_ns_greedy_path(G, pos_greedy_paths, trg)
         cur_node = path_taken[-1]
-        path.append(path_taken[1:])
+        path += path_taken[1:]
 
-    return len(path), path
+    return len(path)-1, path
 
 if __name__ == '__main__':
 
@@ -179,7 +179,7 @@ if __name__ == '__main__':
     G = nx.grid_graph([int(math.sqrt(N)),int(math.sqrt(N))], periodic=False)
     src = random.randint(0,N)
     trg = random.randint(0,N)
-    # print compute_greedy_route(G, G.nodes()[src], G.nodes()[trg])
+    print compute_greedy_route(G, G.nodes()[src], G.nodes()[trg])
     print compute_not_so_greedy_route(G, G.nodes()[src], G.nodes()[trg],num=1)
 
     # add shortcuts according to some rule
