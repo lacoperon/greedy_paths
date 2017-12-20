@@ -261,7 +261,7 @@ if __name__ == '__main__':
     grid_input = [int(N ** (1. / float(dim)))] * dim
     actual_N = reduce(operator.mul, grid_input)
 
-    assert actual_N < N
+    assert actual_N <= N
 
     if actual_N != N:
         print("********\n The "+str(dim)+" root of N is not an int\n********")
