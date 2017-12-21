@@ -341,13 +341,29 @@ if __name__ == '__main__':
     #     loop on src, trg:
     #         loop on routing
 
-    for i in range(arbitrary_num): # maybe 25
-        random.seed(i+1)
-        G = buildGraph(N, alpha, p=1)
-        for j in range( arbitrary_frac * O(N^2) ): #some sample of possible pairs (0.01)
-            src, trg = chooseSrcTrg()
-            for k in range(something? (maybe 2))
-                route(G, src, trg, num)
+    # for i in range(arbitrary_num): # maybe 25
+    #     random.seed(i+1)
+    #     G = buildGraph(N, alpha, p=1)
+    #     for j in range( arbitrary_frac * O(N^2) ): #some sample of possible pairs (0.01)
+    #         src, trg = chooseSrcTrg()
+    #         for k in range(something? (maybe 2))
+    #             route(G, src, trg, num)
+
+    # Connection w how good is an embedding
+
+    # try to count # of backwards steps in a path, for each path
+    # also:   * # steps for k = 1
+            # * # steps for k = 2
+            # * ...
+            # * # backwards steps for k > 1 (separated by case)
+            # * shortest path length for the src, trg
+            # * # shortcuts taken (k > 1)
+            # * # shortcuts taken (k = 1)
+            # * # shortcuts taken in shortest path
+
+            # instead of sampling pairs, just sample src maybe and use all such
+            # targets maybe
+
 
 
 # curve w # steps, alphas, w avg + std
