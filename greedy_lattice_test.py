@@ -201,7 +201,7 @@ def add_shortcuts(G, p=1, alpha=2., mode="oneforall"):
 
         new_edges = map(lambda x: (x, choose_shortcut_partner(G,x,alpha)),
                                    chosen_nodes)
-        print new_edges #currently contains NoneTypes, so we should fix this
+        print new_edges #currently doesn't look right (lots of 0s, shouldn't be)
         print len(new_edges)
         G.add_edges_from(new_edges)
 
@@ -218,7 +218,7 @@ Input : G     : networkx graph,
 
 Output: partner_node : node's partner for the shortcut
 '''
-# TODO: Test
+# TODO: Fix this (doesn't seem to choose the partner with the right prob)
 def choose_shortcut_partner(G, node, alpha):
     nodes = G.nodes()
     nei_set = set(G.neighbors(node))
@@ -236,18 +236,23 @@ def choose_shortcut_partner(G, node, alpha):
     # TODO: Parallelize
     prop_to_partner_prob = map(lambda x : x ** (- alpha),
                                not_neighbor_dists)
+    # print prop_to_partner_prob
     total = sum(prop_to_partner_prob)
+    # print total
     rand_val = total * random.random()
+    # print "rand val is : " , rand_val
 
     i = 0
     cdf_before_i = 0
     while i < len(prop_to_partner_prob):
         cdf_after_i = cdf_before_i + prop_to_partner_prob[i]
-        if cdf_before_i <= rand_val and cdf_after_i <= rand_val:
+        if cdf_before_i <= rand_val and cdf_after_i >= rand_val:
             return not_neighbors[i]
 
         cdf_before_i = cdf_after_i
         i += 1
+
+    return not_neighbors[-1]
 
 
 if __name__ == '__main__':
