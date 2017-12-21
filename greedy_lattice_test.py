@@ -181,7 +181,6 @@ Input: G : networkx graph object we're trying to perturb with shortcuts
 
 Output: G' : updated (ie perturbed) networkx graph object
 '''
-# TODO: Test
 def add_shortcuts(G, p=1, alpha=2., mode="oneforall"):
 # Note: The linked function assumes directed shortcuts, and grid_graph does
 #       generate directed shortcuts, so an assumption of directionality is made
@@ -217,7 +216,6 @@ Input : G     : networkx graph,
 
 Output: partner_node : node's partner for the shortcut
 '''
-# TODO: Fix this (doesn't seem to choose the partner with the right prob)
 def choose_shortcut_partner(G, node, alpha):
     nodes = G.nodes()
     nei_set = set(G.neighbors(node))
