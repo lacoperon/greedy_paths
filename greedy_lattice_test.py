@@ -14,7 +14,7 @@ Output: The Manhattan distance between the two nodes
 def lattice_dist(node1, node2):
     if isinstance(node1, int):
         assert isinstance(node2, int)
-        return node2 - node1
+        return abs(node2 - node1)
     else:
         return sum((abs(b-a) for a,b in zip(node1,node2)))
 
@@ -201,8 +201,7 @@ def add_shortcuts(G, p=1, alpha=2., mode="oneforall"):
 
         new_edges = map(lambda x: (x, choose_shortcut_partner(G,x,alpha)),
                                    chosen_nodes)
-        print new_edges #currently doesn't look right (lots of 0s, shouldn't be)
-        print len(new_edges)
+        print "There are " +str(len(new_edges))+ " edges added by add_shortcuts"
         G.add_edges_from(new_edges)
 
     return G
@@ -236,11 +235,8 @@ def choose_shortcut_partner(G, node, alpha):
     # TODO: Parallelize
     prop_to_partner_prob = map(lambda x : x ** (- alpha),
                                not_neighbor_dists)
-    # print prop_to_partner_prob
     total = sum(prop_to_partner_prob)
-    # print total
     rand_val = total * random.random()
-    # print "rand val is : " , rand_val
 
     i = 0
     cdf_before_i = 0
@@ -278,16 +274,21 @@ if __name__ == '__main__':
     # randomly selects source, target nodes from G
     src_index = random.randint(0,actual_N)
     trg_index = random.randint(0,actual_N)
+    src = G.nodes()[src_index]
+    trg = G.nodes()[trg_index]
+
+
+    print "Routing from " + str(src) + " to " + str(trg)
+
+    G = add_shortcuts(G)
 
     random.seed(1)
     print "Greedy route is: "
-    print compute_greedy_route(G, G.nodes()[src_index], G.nodes()[trg_index])
+    print compute_not_so_greedy_route(G, src, trg, num=1)
+    # print compute_greedy_route(G, G.nodes()[src_index], G.nodes()[trg_index])
     random.seed(1)
     print "Not so greedy route is: "
-    print compute_not_so_greedy_route(G, G.nodes()[src_index],
-                                      G.nodes()[trg_index],num=2)
-
-    add_shortcuts(G)
+    print compute_not_so_greedy_route(G, src, trg, num=2)
 
 
     # see how greeedy paths are doing (compared to actual shortest paths)
