@@ -265,10 +265,11 @@ if __name__ == '__main__':
     if actual_N != N:
         print("********\n The "+str(dim)+" root of N is not an int\n********")
 
-    random.seed(1)
 
     G = nx.grid_graph(grid_input, periodic=False)
 
+
+    random.seed(1)
     # randomly selects source, target nodes from G
     src_index = random.randint(0,actual_N)
     trg_index = random.randint(0,actual_N)
