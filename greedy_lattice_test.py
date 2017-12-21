@@ -162,7 +162,7 @@ def select_ns_greedy_path(G, pos_paths, trg):
     pos_path_indices = filter(lambda x : pos_path_dists[x]==min_dist,
                               pos_path_indices)
     # randomly selects one such 'not so greedy' paths
-    chosen_index = random.sample(pos_path_indices, 1)[0]
+    chosen_index = random.sample(pos_path_indices, 1)[0] # TODO: return them all, and then run on them all (maybe)
     path = pos_paths[chosen_index]
 
     return path
@@ -202,6 +202,7 @@ def add_shortcuts(G, p=1, alpha=2., mode="oneforall"):
                                    chosen_nodes)
         print "There are " +str(len(new_edges))+ " edges added by add_shortcuts"
         G.add_edges_from(new_edges)
+        print new_edges
 
     return G
 
@@ -267,6 +268,8 @@ if __name__ == '__main__':
 
 
     G = nx.grid_graph(grid_input, periodic=False)
+    G = G.to_directed()
+    G = add_shortcuts(G)
 
 
     random.seed(1)
@@ -279,7 +282,7 @@ if __name__ == '__main__':
 
     print "Routing from " + str(src) + " to " + str(trg)
 
-    G = add_shortcuts(G)
+
 
     random.seed(1)
     print "Greedy route is: "
@@ -290,10 +293,11 @@ if __name__ == '__main__':
     print compute_not_so_greedy_route(G, src, trg, num=2)
 
 
-    # see how greeedy paths are doing (compared to actual shortest paths)
-    # compare paths generated to actual shortest paths (nx implements this)
+    # see how greedy paths are doing (compared to actual shortest paths)
+    # compare paths generated to actual shortest paths (nx implements this),
+    # and then see that compared for various small n, alpha, p
 
-    # see how not-so-greedy path ares doing
+    # see how the not-so-greedy path are doing
 
     # Start based on line graph; try to recover the results,
     # then try to generalize to more dimensions
@@ -306,3 +310,13 @@ if __name__ == '__main__':
     # get a bunch of distances, apply the ** - alpha, pick a shortcut proportional
     # to value in the rs_alpha array, then run this simulation for many alphas
     # and plot (Kleinberg has p=1, so try with this first)
+
+    # TODO: (21st December, 2017)
+
+    # Count to see the number of weird cases -- where the num=k case leads to a
+    # shorter path when compared to the num=k+1 case, and insodoing see how the
+    # graph will potentially change.
+
+    # TODO: The greedy routing should only take one step at a time, even if
+    #       it looks out to more steps -- but should only take one step.
+    #       FIX THIS
