@@ -85,6 +85,9 @@ def compute_not_so_greedy_route(G, src, trg, num=1):
         cur_node = path_taken[-1]
         path += path_taken[1:]
 
+        # cur_node = path_taken[1]
+        # path    += path_taken[1] # I THINK -- TODO: Check this
+
     return len(path)-1, path
 
 '''
@@ -269,6 +272,8 @@ if __name__ == '__main__':
 
     G = nx.grid_graph(grid_input, periodic=False)
     G = G.to_directed()
+
+    random.seed(1)
     G = add_shortcuts(G)
 
 
@@ -287,7 +292,7 @@ if __name__ == '__main__':
     random.seed(1)
     print "Greedy route is: "
     print compute_not_so_greedy_route(G, src, trg, num=1)
-    # print compute_greedy_route(G, G.nodes()[src_index], G.nodes()[trg_index])
+    # print compute_greedy_route(G, src, trg)
     random.seed(1)
     print "Not so greedy route is: "
     print compute_not_so_greedy_route(G, src, trg, num=2)
@@ -319,4 +324,30 @@ if __name__ == '__main__':
 
     # TODO: The greedy routing should only take one step at a time, even if
     #       it looks out to more steps -- but should only take one step.
-    #       FIX THIS
+    #       FIX THIS (potential fix is written down, but check this)
+
+    # Two types of effects -- true effect (IE k=2 is slower, deterministically,
+    # as compared to k=1) -- vs. "bug" effect, which is possiblity random choices
+    # make 'large' (or any) differences in the shortest path length computed
+    # (bug effect is only for d>1)
+
+    # Thing to do: Test for true effect
+    # Randomize graph (ie change seed to add shortcuts)
+    # AND Randomize src and trg (ie change seed again)
+    # AND Randomize seed to compute_not_so_greedy_route
+    # (ie. change which random paths chosen at a given point )
+    #
+    # loop on build graph:
+    #     loop on src, trg:
+    #         loop on routing
+
+    for i in range(arbitrary_num): # maybe 25
+        random.seed(i+1)
+        G = buildGraph(N, alpha, p=1)
+        for j in range( arbitrary_frac * O(N^2) ): #some sample of possible pairs (0.01)
+            src, trg = chooseSrcTrg()
+            for k in range(something? (maybe 2))
+                route(G, src, trg, num)
+
+
+# curve w # steps, alphas, w avg + std
