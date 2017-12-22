@@ -127,7 +127,7 @@ def get_pos_ns_greedy_paths(G, cur_node, trg, num):
                 return [current_path]
 
             # List of neighbors, filtered to include only those not seen
-            # TODO: Parallelize
+
             filt_neighbors = filter(lambda x : x not in already_visited,
                                 current_neighbors)
 
@@ -154,14 +154,14 @@ Output:  path_taken : path from cur_node ... trg taken
 '''
 def select_ns_greedy_path(G, pos_paths, trg):
     pos_path_end_nodes = [x[-1] for x in pos_paths]
-    # TODO: Parallelize
+
     pos_path_dists = map(lambda x : lattice_dist(x, trg),
                             pos_path_end_nodes)
     min_dist = min(pos_path_dists)
     pos_path_indices = range(len(pos_path_dists))
 
     # list of possible indices corresp. to best 'not so greedy' paths
-    # TODO: Parallelize (although this is not critical)
+     (although this is not critical)
     pos_path_indices = filter(lambda x : pos_path_dists[x]==min_dist,
                               pos_path_indices)
     # randomly selects one such 'not so greedy' paths
@@ -198,7 +198,7 @@ def add_shortcuts(G, p=1, alpha=2., mode="oneforall"):
         # Bernoulli trial (TODO: Parallelize)
         chosen_nodes = filter(lambda x : random.random() < p, nodes)
 
-        # TODO: Parallelize (have parallel map generate a list of new edges from
+         (have parallel map generate a list of new edges from
         #                    list of chosen nodes, and only then add to G )
 
         new_edges = map(lambda x: (x, choose_shortcut_partner(G,x,alpha)),
@@ -224,17 +224,17 @@ def choose_shortcut_partner(G, node, alpha):
     nodes = G.nodes()
     nei_set = set(G.neighbors(node))
     nei_set.add(node) #note that we also don't want a self-loop shortcut
-    # TODO: Parallelize
+    
     # All nodes that are not the chosen node's neighbors
     not_neighbors = filter(lambda x : x not in nei_set, nodes)
     # Distance between the chosen node and its 'not neighbors'
-    # TODO: Parallelize
+
     not_neighbor_dists = map(lambda x : lattice_dist(x, node),
                              not_neighbors)
     # Note that, according to Kleinberg (2000)'s logic, the probability
     # of connecting the chosen_node to a node in not neighbors should
     # be proportional to r ** - alpha
-    # TODO: Parallelize
+
     prop_to_partner_prob = map(lambda x : x ** (- alpha),
                                not_neighbor_dists)
     total = sum(prop_to_partner_prob)
