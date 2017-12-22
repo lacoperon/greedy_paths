@@ -7,6 +7,9 @@ import operator
 #       although I don't think that's technically possible for unperturbed lattices
 #       (it is, however, for perturbed lattices)
 
+
+# TODO: Parallization didn't go so well with Pool.map, but there should be an
+#       easy way to get that done...
 '''
 Input:  Two nodes (where nodes are represented by tuples of dimension length)
 Output: The Manhattan distance between the two nodes
@@ -74,7 +77,7 @@ Output:  steps_count : int (number of steps in the greedy path computed),
 def compute_not_so_greedy_route(G, src, trg, num=1):
 
     assert num > 0 and isinstance(num, int)
-    assert src != trg
+    # assert src != trg
 
     path = [src]
     cur_node = src
@@ -161,7 +164,6 @@ def select_ns_greedy_path(G, pos_paths, trg):
     pos_path_indices = range(len(pos_path_dists))
 
     # list of possible indices corresp. to best 'not so greedy' paths
-     (although this is not critical)
     pos_path_indices = filter(lambda x : pos_path_dists[x]==min_dist,
                               pos_path_indices)
     # randomly selects one such 'not so greedy' paths
@@ -184,7 +186,7 @@ Input: G : networkx graph object we're trying to perturb with shortcuts
 
 Output: G' : updated (ie perturbed) networkx graph object
 '''
-def add_shortcuts(G, p=1, alpha=2., mode="oneforall"):
+def add_shortcuts(G, p=1, alpha=2., mode="oneforall", verbose=False):
 # Note: The linked function assumes directed shortcuts, and grid_graph does
 #       generate directed shortcuts, so an assumption of directionality is made
 # add shortcuts according to some rule
@@ -195,17 +197,15 @@ def add_shortcuts(G, p=1, alpha=2., mode="oneforall"):
     if mode == "oneforall":
         nodes = G.nodes()
         # Each node is chosen (or not) to have a shortcut based on a
-        # Bernoulli trial (TODO: Parallelize)
+        # Bernoulli trial
         chosen_nodes = filter(lambda x : random.random() < p, nodes)
-
-         (have parallel map generate a list of new edges from
-        #                    list of chosen nodes, and only then add to G )
-
         new_edges = map(lambda x: (x, choose_shortcut_partner(G,x,alpha)),
                                    chosen_nodes)
-        print "There are " +str(len(new_edges))+ " edges added by add_shortcuts"
+        if verbose:
+            print "There are " +str(len(new_edges))+ " edges added by add_shortcuts"
         G.add_edges_from(new_edges)
-        print new_edges
+        if verbose:
+            print new_edges
 
     return G
 
@@ -224,7 +224,6 @@ def choose_shortcut_partner(G, node, alpha):
     nodes = G.nodes()
     nei_set = set(G.neighbors(node))
     nei_set.add(node) #note that we also don't want a self-loop shortcut
-    
     # All nodes that are not the chosen node's neighbors
     not_neighbors = filter(lambda x : x not in nei_set, nodes)
     # Distance between the chosen node and its 'not neighbors'
@@ -252,50 +251,79 @@ def choose_shortcut_partner(G, node, alpha):
 
     return not_neighbors[-1]
 
+'''
+Function which runs a number of simulations based on the various parameters
+described below.
 
-if __name__ == '__main__':
-
-    N = 100
-    dim = 1
-
-    assert isinstance(dim, int) and dim > 0
-    assert isinstance(N,   int)
-
+Input:  N   : int (# of nodes desired in lattice (upper bound)),
+        dim : int (dimension of the lattice),
+        num_graph_gen : int (number of distinct graphs we want to run sims on),
+        pair_frac : float (frac of all node pairs we want to route to/from),
+        num_tries : int (# tries for routing (to catch "bug" effect)),
+        verbose : bool (whether or not to print out everything),
+        alpha : float (what alpha value to use for the sims),
+        p : float (probability of a given node having a shortcut added to it),
+        SEED : int (seed for the run)
+Output: TBD (should be void, need to write code to output various desired
+             measures for each run to a .csv file)
+'''
+def runSimulation(N=100, dim=1, num_graph_gen=25, pair_frac=0.01,
+                 num_tries=2, verbose=False, alpha=2., p=1, SEED=1):
     grid_input = [int(N ** (1. / float(dim)))] * dim
     actual_N = reduce(operator.mul, grid_input)
-
+    assert isinstance(dim, int) and dim > 0
+    assert isinstance(N,   int)
     assert actual_N <= N
+
+    print "Running simulation on " + str(grid_input) + " lattice"
 
     if actual_N != N:
         print("********\n The "+str(dim)+" root of N is not an int\n********")
 
+    random.seed(SEED)
 
-    G = nx.grid_graph(grid_input, periodic=False)
-    G = G.to_directed()
+    for i in range(num_graph_gen):
+        G = nx.grid_graph(grid_input, periodic=False)
+        G = G.to_directed()
+        G = add_shortcuts(G, verbose=verbose)
 
-    random.seed(1)
-    G = add_shortcuts(G)
+        if verbose:
+            print ("Running with "
+                    + str(int(pair_frac * (actual_N * (actual_N - 1) / 2)))
+                    + " pairs of nodes")
+        for j in range(int(pair_frac * (actual_N * (actual_N - 1) / 2))):
+            # randomly selects src, trg from G.nodes() WITH REPLACEMENT
+            src_index = random.randint(0,actual_N-1)
+            trg_index = random.randint(0,actual_N-1)
+            src = G.nodes()[src_index]
+            trg = G.nodes()[trg_index]
+
+            for k in range(num_tries):
+                if verbose:
+                    print "Attempt Number " + str(k)
+                    print "Routing from " + str(src) + " to " + str(trg)
+                    print "Greedy route is: "
+                gr_result = compute_not_so_greedy_route(G, src, trg, num=1)
+                if verbose:
+                    print gr_result
+                    print "Not so greedy route is: "
+                nsgr_result = compute_not_so_greedy_route(G, src, trg, num=2)
+                if verbose:
+                    print nsgr_result
 
 
-    random.seed(1)
-    # randomly selects source, target nodes from G
-    src_index = random.randint(0,actual_N)
-    trg_index = random.randint(0,actual_N)
-    src = G.nodes()[src_index]
-    trg = G.nodes()[trg_index]
 
+if __name__ == '__main__':
 
-    print "Routing from " + str(src) + " to " + str(trg)
+    alphas = [0.5*x for x in range(6)]
+    ps     = [1]
 
+    for alpha in alphas:
+        print "Running for alpha equal to " + str(alpha)
+        for p in ps:
+            runSimulation(N=100, dim=1, num_graph_gen=25, pair_frac=0.01,
+                          num_tries=2, verbose=True, alpha=alpha, p=p, SEED=1)
 
-
-    random.seed(1)
-    print "Greedy route is: "
-    print compute_not_so_greedy_route(G, src, trg, num=1)
-    # print compute_greedy_route(G, src, trg)
-    random.seed(1)
-    print "Not so greedy route is: "
-    print compute_not_so_greedy_route(G, src, trg, num=2)
 
 
     # see how greedy paths are doing (compared to actual shortest paths)
@@ -322,32 +350,10 @@ if __name__ == '__main__':
     # shorter path when compared to the num=k+1 case, and insodoing see how the
     # graph will potentially change.
 
-    # TODO: The greedy routing should only take one step at a time, even if
-    #       it looks out to more steps -- but should only take one step.
-    #       FIX THIS (potential fix is written down, but check this)
-
     # Two types of effects -- true effect (IE k=2 is slower, deterministically,
     # as compared to k=1) -- vs. "bug" effect, which is possiblity random choices
     # make 'large' (or any) differences in the shortest path length computed
     # (bug effect is only for d>1)
-
-    # Thing to do: Test for true effect
-    # Randomize graph (ie change seed to add shortcuts)
-    # AND Randomize src and trg (ie change seed again)
-    # AND Randomize seed to compute_not_so_greedy_route
-    # (ie. change which random paths chosen at a given point )
-    #
-    # loop on build graph:
-    #     loop on src, trg:
-    #         loop on routing
-
-    # for i in range(arbitrary_num): # maybe 25
-    #     random.seed(i+1)
-    #     G = buildGraph(N, alpha, p=1)
-    #     for j in range( arbitrary_frac * O(N^2) ): #some sample of possible pairs (0.01)
-    #         src, trg = chooseSrcTrg()
-    #         for k in range(something? (maybe 2))
-    #             route(G, src, trg, num)
 
     # Connection w how good is an embedding
 
