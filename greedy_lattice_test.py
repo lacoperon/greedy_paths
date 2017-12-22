@@ -251,8 +251,6 @@ def choose_shortcut_partner(G, node, alpha):
 
     return not_neighbors[-1]
 
-def calculate
-
 '''
 Function which runs a number of simulations based on the various parameters
 described below.
@@ -270,7 +268,7 @@ Output: TBD (should be void, need to write code to output various desired
              measures for each run to a .csv file)
 '''
 def runSimulation(N=100, dim=1, num_graph_gen=25, pair_frac=0.01,
-                 num_tries=2, verbose=False, alpha=2., p=1, SEED=1):
+                 num_tries=2, verbose=False, alpha=2., p=1, numMax=2, SEED=1):
     grid_input = [int(N ** (1. / float(dim)))] * dim
     actual_N = reduce(operator.mul, grid_input)
     assert isinstance(dim, int) and dim > 0
@@ -301,8 +299,11 @@ def runSimulation(N=100, dim=1, num_graph_gen=25, pair_frac=0.01,
             trg = G.nodes()[trg_index]
 
             for k in range(num_tries):
-                gr_result = compute_not_so_greedy_route(G, src, trg, num=1)
-                nsgr_result = compute_not_so_greedy_route(G, src, trg, num=2)
+                results = []
+                for num in range(1,numMax+1):
+                    results += [compute_not_so_greedy_route(G,src,trg,num=num)]
+                gr_result = results[0]
+                nsgr_result = results[1]
                 if verbose:
                     print "Attempt Number " + str(k)
                     print "Routing from " + str(src) + " to " + str(trg)
@@ -311,12 +312,30 @@ def runSimulation(N=100, dim=1, num_graph_gen=25, pair_frac=0.01,
                     print "Not so greedy route is: "
                     print nsgr_result
 
+'''
+Function that generates a range of values, from xmin to xmax, with
+steps values evenly between xmin and xmax.
+Input:
+    xlims : xmin * xmax (ie lower + upper bound of x values)
+    steps : int (number of values in the returned values array)
+Output:
+    values : float array
+'''
+def generate_range(xlims, steps):
+    xmin, xmax = xlims
+    stepsize = (xmax - xmin) / (steps - 1)
+    return [stepsize * x for x in range(steps)]
 
+# TODO: Implement this Function
+# https://pandas.pydata.org/pandas-docs/stable/generated/pandas.DataFrame.html
+# ^^^ this could be helpful (seems analogous to R df)
+def write_measures_to_csv():
+    pass
 
 if __name__ == '__main__':
 
-    alphas = [0.5*x for x in range(6)]
-    ps     = [1]
+    alphas = generate_range([0,3],7)
+    ps     = [0]
 
     for alpha in alphas:
         print "Running for alpha equal to " + str(alpha)
