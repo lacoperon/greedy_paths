@@ -7,8 +7,7 @@ import operator
 #       although I don't think that's technically possible for unperturbed lattices
 #       (it is, however, for perturbed lattices)
 
-
-# TODO: Parallization didn't go so well with Pool.map, but there should be an
+# TODO: Parallelization didn't go so well with Pool.map, but there should be an
 #       easy way to get that done...
 '''
 Input:  Two nodes (where nodes are represented by tuples of dimension length)
