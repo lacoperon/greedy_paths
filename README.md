@@ -55,3 +55,9 @@ The Nature Brief Communications pdf is in the folder; the code in `greedy_lattic
 Thoughts from Elliot (Dec 23rd):
 
 Do we want to collect the size of the backwards step?
+I'm using Manhattan distance between successive nodes and the trg
+to quantify what a backwards step is, but that also seems to imply
+that there are backwards steps that are more backwards than others.
+
+again, do we want to collect the size of these steps? What does this
+actually look like in practice
