@@ -8,7 +8,9 @@ import glob
 
 # TODO: Try to code up a way to check if we're 'stuck' in local regions,
 #       although I don't think that's technically possible for unperturbed lattices
-#       (it is, however, for perturbed lattices)
+#       (it is, however, for perturbed lattices where edges are removed)
+#       -- it won't be for lattices where edges are added, because it's not for
+#       regular lattices
 
 # TODO: Parallelization didn't go so well with Pool.map, but there should be an
 #       easy way to get that done...
@@ -426,15 +428,24 @@ if __name__ == '__main__':
     for f in files:
         os.remove(f)
 
+    # Simulation Parameters
+    # Please change them here! Otherwise the .csv files will be mislabelled...
+
+    N = 100
+    dim = 1
     alphas = generate_range([0,3],7)
     ps     = [1]
 
     for alpha in alphas:
         print "Running for alpha equal to " + str(alpha)
         for p in ps:
-            dcd = runSimulation(N=100, dim=1, num_graph_gen=1, pair_frac=0.01,
+            dcd = runSimulation(N=N, dim=dim, num_graph_gen=1, pair_frac=0.01,
                           printDict=False, num_tries=2, verbose=False,
                           alpha=alpha, p=p, SEED=1)
 
-            filename = "./data_output/sim_p_"+str(p)+"alpha_"+str(alpha)+".csv"
+            # TODO: Maybe output a file which details the simulation params,
+            #       instead of storing them all in the filename (subject to change)
+            filename = "./data_output/sim_"
+            filename += "p_"+str(p)+"_alpha_"+str(alpha)
+            filename += "_N_"+str(N)+"_dim_" + str(dim) + ".csv"
             write_dcd_to_csv(dcd, filename= filename)
