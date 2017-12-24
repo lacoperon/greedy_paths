@@ -263,7 +263,7 @@ Input:  G : networkx graph object,
         path : node list
 
 Output:
-
+        num_backwards_steps : int (the number of backwards steps taken)
 '''
 def calc_num_backwards_steps(G, path, trg):
     num_backwards_steps = 0
