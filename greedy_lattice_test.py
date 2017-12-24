@@ -266,7 +266,7 @@ Input:  N   : int (# of nodes desired in lattice (upper bound)),
 Output: TBD (should be void, need to write code to output various desired
              measures for each run to a .csv file)
 '''
-def runSimulation(N=100, dim=1, num_graph_gen=25, pair_frac=0.01,
+def runSimulation(N=100, dim=1, num_graph_gen=25, pair_frac=0.01, printDict=False,
                  num_tries=2, verbose=False, alpha=2., p=1, numMax=2, SEED=1):
     grid_input = [int(N ** (1. / float(dim)))] * dim
     actual_N = reduce(operator.mul, grid_input)
@@ -281,35 +281,78 @@ def runSimulation(N=100, dim=1, num_graph_gen=25, pair_frac=0.01,
 
     random.seed(SEED)
 
-    for i in range(num_graph_gen):
+    dcd = {} #Dict collecting results
+
+    #initializing dict columns
+    dcd["shortcutstakenSP"] = []
+    dcd["lengthOfShortestPath"] = []
+    dcd["graphNum"] = []
+    dcd["attemptNum"] = []
+    for num in range(1,numMax+1):
+        dcd["lengthOfPathk="+str(num)] = []
+        if num > 1:
+            dcd["shortcutsTakenk="+str(num)] = []
+
+
+    # Running sim for a number of graphs
+    for graph_number in range(num_graph_gen):
         G = nx.grid_graph(grid_input, periodic=False)
         G = G.to_directed()
         G = add_shortcuts(G, verbose=verbose)
 
         if verbose:
             print ("Running with "
-                    + str(int(pair_frac * (actual_N * (actual_N - 1) / 2)))
+                    + str(int(pair_frac * (actual_N * (actual_N - 1))))
                     + " pairs of nodes")
-        for j in range(int(pair_frac * (actual_N * (actual_N - 1) / 2))):
+        for j in range( int(pair_frac * (actual_N * (actual_N - 1)))):
             # randomly selects src, trg from G.nodes() WITH REPLACEMENT
             src_index = random.randint(0,actual_N-1)
             trg_index = random.randint(0,actual_N-1)
             src = G.nodes()[src_index]
             trg = G.nodes()[trg_index]
 
-            for k in range(num_tries):
-                results = []
+            actualShortestPath = nx.shortest_path(G, source=src, target=trg)
+
+            for attemptNum in range(num_tries):
+                results_at_given_run = []
+
+                # Data Collection (Part I)
+                dcd["graphNum"] += [graph_number]
+                dcd["shortcutstakenSP"] += [0] #TODO: Add this
+                dcd["lengthOfShortestPath"] += [len(actualShortestPath)-1]
+                dcd["attemptNum"] += [attemptNum]
+
                 for num in range(1,numMax+1):
-                    results += [compute_not_so_greedy_route(G,src,trg,num=num)]
-                gr_result = results[0]
-                nsgr_result = results[1]
+                    result = compute_not_so_greedy_route(G,src,trg,num=num)
+
+                    # Data collection (Part II)
+                    dcd["lengthOfPathk="+str(num)] += [result[0]]
+                    if num > 1:
+                        dcd["shortcutsTakenk="+str(num)] += [0] #TODO: Add this
+
+                    results_at_given_run += [result]
+
+                gr_result   = results_at_given_run[0]
+                nsgr_result = results_at_given_run[1]
+
                 if verbose:
-                    print "Attempt Number " + str(k)
+                    print "-----------------"
+                    print "Attempt Number " + str(attemptNum)
                     print "Routing from " + str(src) + " to " + str(trg)
                     print "Greedy route is: "
                     print gr_result
                     print "Not so greedy route is: "
                     print nsgr_result
+                    print "Actual shortest path is"
+                    print actualShortestPath
+                    print "Actual shortest path is length:"
+                    print (len(actualShortestPath) -1)
+
+    if printDict:
+        for key in dcd:
+            print key
+            print len(dcd[key])
+
 
 '''
 Function that generates a range of values, from xmin to xmax, with
@@ -322,12 +365,9 @@ Output:
 '''
 def generate_range(xlims, steps):
     xmin, xmax = xlims
-    stepsize = (xmax - xmin) / (steps - 1)
+    stepsize = (xmax - xmin) / (steps - 1.)
     return [stepsize * x for x in range(steps)]
 
-# TODO: Implement this Function
-# https://pandas.pydata.org/pandas-docs/stable/generated/pandas.DataFrame.html
-# ^^^ this could be helpful (seems analogous to R df)
 def write_measures_to_csv():
     pass
 
@@ -339,5 +379,5 @@ if __name__ == '__main__':
     for alpha in alphas:
         print "Running for alpha equal to " + str(alpha)
         for p in ps:
-            runSimulation(N=100, dim=1, num_graph_gen=25, pair_frac=0.01,
-                          num_tries=2, verbose=True, alpha=alpha, p=p, SEED=1)
+            runSimulation(N=100, dim=1, num_graph_gen=1, pair_frac=0.01, printDict=False,
+                          num_tries=2, verbose=False, alpha=alpha, p=p, SEED=1)
