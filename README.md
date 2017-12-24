@@ -50,6 +50,8 @@ The Nature Brief Communications pdf is in the folder; the code in `greedy_lattic
         # instead of sampling pairs, just sample src maybe and use all such
         # targets maybe
 
-
-
 # curve w # steps, alphas, w avg + std
+
+Thoughts from Elliot (Dec 23rd):
+
+Do we want to collect the size of the backwards step?
