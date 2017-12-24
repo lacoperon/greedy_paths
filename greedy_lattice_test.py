@@ -309,7 +309,7 @@ def runSimulation(N=100, dim=1, num_graph_gen=25, pair_frac=0.01, printDict=Fals
 
     dcd = {} #Dict collecting results
 
-    #initializing dict columns
+    #initializing dict columns (maybe this should be its own function)
     dcd["shortcutstakenSP"] = []
     dcd["lengthOfShortestPath"] = []
     dcd["backsteps_SP"] = []
