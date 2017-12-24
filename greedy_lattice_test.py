@@ -265,9 +265,16 @@ Input:  G : networkx graph object,
 Output:
 
 '''
-# TODO: Implement this
-def calc_num_backwards_steps(G, path):
-    pass
+def calc_num_backwards_steps(G, path, trg):
+    num_backwards_steps = 0
+
+    for i in range(len(path)-1):
+        dist1 = lattice_dist(path[i],trg)
+        dist2 = lattice_dist(path[i+1],trg)
+        if dist1 < dist2:
+            num_backwards_steps += 1
+
+    return num_backwards_steps
 
 '''
 Function which runs a number of simulations based on the various parameters
@@ -305,12 +312,14 @@ def runSimulation(N=100, dim=1, num_graph_gen=25, pair_frac=0.01, printDict=Fals
     #initializing dict columns
     dcd["shortcutstakenSP"] = []
     dcd["lengthOfShortestPath"] = []
+    dcd["backsteps_SP"] = []
     dcd["graphNum"] = []
     dcd["attemptNum"] = []
     for num in range(1,numMax+1):
         dcd["lengthOfPathk="+str(num)] = []
         if num > 1:
             dcd["shortcutsTakenk="+str(num)] = []
+            dcd["backsteps_k="+str(num)] = []
 
 
     # Running sim for a number of graphs
@@ -335,10 +344,15 @@ def runSimulation(N=100, dim=1, num_graph_gen=25, pair_frac=0.01, printDict=Fals
             for attemptNum in range(num_tries):
                 results_at_given_run = []
 
+                # Maybe should add this to a separate function and refactor,
+                # because this looks mighty funky
+
                 # Data Collection (Part I)
                 dcd["graphNum"] += [graph_number]
                 dcd["shortcutstakenSP"] += [0] #TODO: Add this
                 dcd["lengthOfShortestPath"] += [len(actualShortestPath)-1]
+                dcd["backsteps_SP"] += [calc_num_backwards_steps(G,
+                                        actualShortestPath, trg)]
                 dcd["attemptNum"] += [attemptNum]
 
                 for num in range(1,numMax+1):
@@ -348,6 +362,9 @@ def runSimulation(N=100, dim=1, num_graph_gen=25, pair_frac=0.01, printDict=Fals
                     dcd["lengthOfPathk="+str(num)] += [result[0]]
                     if num > 1:
                         dcd["shortcutsTakenk="+str(num)] += [0] #TODO: Add this
+                        dcd["backsteps_k="+str(num)] += [
+                            calc_num_backwards_steps(G, actualShortestPath, trg)
+                        ]
 
                     results_at_given_run += [result]
 
