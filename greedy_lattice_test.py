@@ -2,6 +2,9 @@ import networkx as nx
 import random
 import math
 import operator
+import csv
+import os
+import glob
 
 # TODO: Try to code up a way to check if we're 'stuck' in local regions,
 #       although I don't think that's technically possible for unperturbed lattices
@@ -191,7 +194,7 @@ def add_shortcuts(G, p=1, alpha=2., mode="oneforall", verbose=False):
 # add shortcuts according to some rule
 # take a look at https://networkx.github.io/documentation/networkx-1.10/_modules/networkx/generators/geometric.html#navigable_small_world_graph
     assert mode in ["oneforall"]
-    assert p <= 1 and p > 0 # p=0 is uninteresting
+    assert p <= 1 and p >= 0 # p=0 is uninteresting
 
     if mode == "oneforall":
         nodes = G.nodes()
@@ -251,6 +254,22 @@ def choose_shortcut_partner(G, node, alpha):
     return not_neighbors[-1]
 
 '''
+Function takes in a graph object, and a node list corresponding to a path
+from a src node to a trg node. It then calculates the number of 'backwards'
+steps taken in the path. I define a 'backwards' step as a step which increases
+the Manhattan distance between the current node and the target.
+
+Input:  G : networkx graph object,
+        path : node list
+
+Output:
+
+'''
+# TODO: Implement this
+def calc_num_backwards_steps(G, path):
+    pass
+
+'''
 Function which runs a number of simulations based on the various parameters
 described below.
 
@@ -298,7 +317,7 @@ def runSimulation(N=100, dim=1, num_graph_gen=25, pair_frac=0.01, printDict=Fals
     for graph_number in range(num_graph_gen):
         G = nx.grid_graph(grid_input, periodic=False)
         G = G.to_directed()
-        G = add_shortcuts(G, verbose=verbose)
+        G = add_shortcuts(G, p=p, alpha=alpha, verbose=verbose)
 
         if verbose:
             print ("Running with "
@@ -353,6 +372,7 @@ def runSimulation(N=100, dim=1, num_graph_gen=25, pair_frac=0.01, printDict=Fals
             print key
             print len(dcd[key])
 
+    return dcd
 
 '''
 Function that generates a range of values, from xmin to xmax, with
@@ -368,16 +388,36 @@ def generate_range(xlims, steps):
     stepsize = (xmax - xmin) / (steps - 1.)
     return [stepsize * x for x in range(steps)]
 
-def write_measures_to_csv():
-    pass
+'''
+Function which takes in a data collection dictionary, and outputs the data
+collected (for that particular run) to csv
+Input:    dcd : dict (dict w keys as variable names,
+                      lists as values corresponding to the vector representations
+                      of those columns)
+Output :  void (Should write to .csv though...)
+'''
+def write_dcd_to_csv(dcd, filename="test.csv"):
+    with open(filename, "wb") as outfile:
+        writer = csv.writer(outfile)
+        writer.writerow(dcd.keys())
+        writer.writerows(zip(*dcd.values()))
 
 if __name__ == '__main__':
 
+    # Removes leftover files from previous runs
+    files = glob.glob('./data_output/*.csv')
+    for f in files:
+        os.remove(f)
+
     alphas = generate_range([0,3],7)
-    ps     = [0]
+    ps     = [1]
 
     for alpha in alphas:
         print "Running for alpha equal to " + str(alpha)
         for p in ps:
-            runSimulation(N=100, dim=1, num_graph_gen=1, pair_frac=0.01, printDict=False,
-                          num_tries=2, verbose=False, alpha=alpha, p=p, SEED=1)
+            dcd = runSimulation(N=100, dim=1, num_graph_gen=1, pair_frac=0.01,
+                          printDict=False, num_tries=2, verbose=False,
+                          alpha=alpha, p=p, SEED=1)
+
+            filename = "./data_output/sim_p_"+str(p)+"alpha_"+str(alpha)+".csv"
+            write_dcd_to_csv(dcd, filename= filename)
