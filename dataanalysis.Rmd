@@ -1,0 +1,34 @@
+---
+title: "R Notebook"
+output: html_notebook
+---
+
+### Data Input
+
+```{r datainput}
+library(readr)
+library(dplyr)
+
+filenames <- list.files("./data_output", pattern="*.csv", full.names=TRUE)
+stripped_filenames <- substr(filenames,19, nchar(filenames)-4)
+split_strip_filenames <- strsplit(stripped_filenames, "_")
+seq <- seq_along(filenames)
+
+temp <- 2
+getelt <- function(x) {
+  list_temp <- split_strip_filenames[[x]]
+  return(split_strip_filenames[[x]][temp])
+}
+
+pvector <- lapply(seq, getelt)
+temp <- 4
+avector <- lapply(seq, getelt)
+temp <- 6
+nvector <- lapply(seq, getelt)
+temp <- 8
+dvector <- lapply(seq, getelt)
+df <- data_frame(p = as.numeric(pvector),
+           a = as.numeric(avector),
+           n = as.integer(nvector),
+           d = as.integer(dvector))
+
