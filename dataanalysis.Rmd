@@ -3,7 +3,11 @@ title: "R Notebook"
 output: html_notebook
 ---
 
-### Data Input
+### Filename Scraping
+
+Firstly, we want to start by noting all csv files contained within the `./data_output` directory,
+and list them all out. Then, we want to parse out the p, alpha, N, and dim variables from the 
+csv name. Finally, we want to add all of this to a dataframe, let's call it df.
 
 ```{r datainput}
 library(readr)
@@ -28,7 +32,36 @@ nvector <- lapply(seq, getelt)
 temp <- 8
 dvector <- lapply(seq, getelt)
 df <- data_frame(p = as.numeric(pvector),
-           a = as.numeric(avector),
-           n = as.integer(nvector),
-           d = as.integer(dvector))
+           alpha = as.numeric(avector),
+           N = as.integer(nvector),
+           dim = as.integer(dvector),
+           filename = filenames)
+rm(pvector, avector, nvector, dvector, temp, split_strip_filenames, filenames, stripped_filenames, getelt)
+```
+
+### Data Loading + Graphing
+
+```{r}
+library(ggplot2)
+library(readr)
+filename <- df$filename[13]
+p <- df$p[13]
+alpha <- df$alpha[13]
+N <- df$N[13]
+dim <- df$N[13]
+data <- read_csv(filename)
+seq <- seq_along(data$`lengthOfPathk=1`)
+qplot(seq, data$`lengthOfPathk=1`) + geom_point(aes(y=data$`lengthOfPathk=2`), color="red") +
+  geom_point(aes(y=data$lengthOfShortestPath), color="blue")
+```
+
+```{r}
+zoom <- 50
+ggplot(data, aes(`lengthOfPathk=1`), color="black") + geom_freqpoly(bins=zoom) + 
+  geom_freqpoly(aes(data$`lengthOfPathk=2`), color="red", bins=zoom) +
+  geom_freqpoly(aes(data$lengthOfShortestPath), color="blue",bins=zoom) +
+  xlab("Length of Routed Path") + ylab("Frequency") +
+  labs(title="Path Length Frequency", 
+       subtitle=paste("For p =", p, ", alpha=",alpha,", N=",N,", dim=",dim, sep="")) + xlim(0,NA)
+```
 
