@@ -482,6 +482,9 @@ def write_dcd_to_csv(dcd, filename="test.csv"):
         writer.writerow(dcd.keys())
         writer.writerows(zip(*dcd.values()))
 
+'''
+~~~ THE ACTUAL SIMULATION RUN CODE STARTS HERE ~~~
+'''
 if __name__ == '__main__':
 
     # Removes leftover files from previous runs
