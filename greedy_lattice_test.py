@@ -89,11 +89,8 @@ def compute_not_so_greedy_route(G, src, trg, num=1):
     while cur_node != trg:
         pos_greedy_paths = get_pos_ns_greedy_paths(G, cur_node, trg, num)
         path_taken = select_ns_greedy_path(G, pos_greedy_paths, trg)
-        cur_node = path_taken[-1]
-        path += path_taken[1:]
-
-        # cur_node = path_taken[1]
-        # path    += path_taken[1] # I THINK -- TODO: Check this
+        cur_node = path_taken[1]
+        path += [path_taken[1]]
 
     return len(path)-1, path
 
