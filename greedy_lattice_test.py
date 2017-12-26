@@ -168,7 +168,7 @@ def select_ns_greedy_path(G, pos_paths, trg):
     pos_path_indices = filter(lambda x : pos_path_dists[x]==min_dist,
                               pos_path_indices)
     # randomly selects one such 'not so greedy' paths
-    chosen_index = random.sample(pos_path_indices, 1)[0] # TODO: return them all, and then run on them all (maybe)
+    chosen_index = random.sample(pos_path_indices, 1)[0]
     path = pos_paths[chosen_index]
 
     return path
