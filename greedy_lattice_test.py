@@ -25,6 +25,43 @@ def lattice_dist(node1, node2):
     else:
         return sum((abs(b-a) for a,b in zip(node1,node2)))
 
+# Test cases
+assert lattice_dist(1,2) is 1
+assert lattice_dist(13,13) is 0
+assert lattice_dist((1,2,3),(4,5,6)) is 9
+assert lattice_dist((1,2,3),(1,1,1)) is 3
+assert lattice_dist((1,2,3,4,5),(1,2,3,4,5)) is 0
+
+'''
+Function to see if two nodes are, *de novo*, adjacent to each other in a lattice
+(IE two nodes are connected prior to pertubation)
+'''
+def are_denovo_adjacent(node1, node2):
+    if node1 == node2:
+        return False
+
+    if isinstance(node1, int):
+        assert isinstance(node2, int)
+        return abs(node2 - node1) == 1
+    else:
+        assert len(node1) == len(node2)
+        hasBeenDifferent = False
+        for i in range(len(node1)):
+            if node1[i] != node2[i]:
+                if hasBeenDifferent:
+                    return False
+                else:
+                    if abs(node1[i]-node2[i]) != 1:
+                        return False
+                    hasBeenDifferent = True
+        return True
+
+assert are_denovo_adjacent(1,2) is True
+assert are_denovo_adjacent(1,1) is False
+assert are_denovo_adjacent(13,15) is False
+assert are_denovo_adjacent((1,1),(1,2))
+
+
 '''
 The compute_greedy_route function computes the 'greedy' route between two nodes,
 where you can 'look ahead' to only your neighbors
@@ -81,7 +118,6 @@ Output:  steps_count : int (number of steps in the greedy path computed),
 def compute_not_so_greedy_route(G, src, trg, num=1):
 
     assert num > 0 and isinstance(num, int)
-    # assert src != trg
 
     path = [src]
     cur_node = src
