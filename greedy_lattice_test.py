@@ -35,8 +35,13 @@ assert lattice_dist((1,2,3,4,5),(1,2,3,4,5)) is 0
 '''
 Function to see if two nodes are, *de novo*, adjacent to each other in a lattice
 (IE two nodes are connected prior to pertubation)
+Input:
+    node1 : node in a given lattice graph
+    node2 : another node in a given lattice graph
+Output:
+    bool (whether or not the two nodes are de novo adjacent in a lattice)
 '''
-def are_denovo_adjacent(node1, node2):
+def are_denovo_adj(node1, node2):
     if node1 == node2:
         return False
 
@@ -56,10 +61,32 @@ def are_denovo_adjacent(node1, node2):
                     hasBeenDifferent = True
         return True
 
-assert are_denovo_adjacent(1,2) is True
-assert are_denovo_adjacent(1,1) is False
-assert are_denovo_adjacent(13,15) is False
-assert are_denovo_adjacent((1,1),(1,2))
+assert are_denovo_adj(1,2) is True
+assert are_denovo_adj(1,1) is False
+assert are_denovo_adj(13,15) is False
+assert are_denovo_adj((1,1),(1,2))
+
+'''
+Function that counts the number of 'shortcuts' taken in a given path from src
+to trg.
+Input:
+    path : node list (list of the nodes taken along the path from src to trg)
+Output:
+    int (the number of shortcuts taken)
+'''
+def shortcuts_taken(path):
+    step_indices = range(len(path)-1)
+    shortcut_vector = [not are_denovo_adj(path[i],path[i+1]) for i in step_indices]
+    return sum(shortcut_vector)
+
+path1 = [1,2,3,4,7,8,9]
+assert shortcuts_taken(path1) is 1
+path2 = [1,2,4,5,7,8,10,11]
+assert shortcuts_taken(path2) is 3
+path3 = [(1,1),(1,2),(2,2),(17,3),(17,4)]
+assert shortcuts_taken(path3) is 1
+path4 = []
+assert shortcuts_taken(path4) is 0
 
 
 '''
@@ -383,8 +410,8 @@ def runSimulation(N=100, dim=1, num_graph_gen=25, pair_frac=0.01, printDict=Fals
                 # because this looks mighty funky
 
                 # Data Collection (Part I)
-                dcd["graphNum"] += [graph_number]
-                dcd["shortcutstakenSP"] += [0] #TODO: Add this
+                dcd["graphNum"] += [graph_number+1]
+                dcd["shortcutstakenSP"] += [shortcuts_taken(actualShortestPath)]
                 dcd["lengthOfShortestPath"] += [len(actualShortestPath)-1]
                 dcd["backsteps_SP"] += [calc_num_backwards_steps(G,
                                         actualShortestPath, trg)]
@@ -396,7 +423,8 @@ def runSimulation(N=100, dim=1, num_graph_gen=25, pair_frac=0.01, printDict=Fals
                     # Data collection (Part II)
                     dcd["lengthOfPathk="+str(num)] += [result[0]]
                     if num > 1:
-                        dcd["shortcutsTakenk="+str(num)] += [0] #TODO: Add this
+                        dcd["shortcutsTakenk="+str(num)] += [
+                            shortcuts_taken(result[1])]
                         dcd["backsteps_k="+str(num)] += [
                             calc_num_backwards_steps(G, actualShortestPath, trg)
                         ]
