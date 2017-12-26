@@ -285,6 +285,7 @@ Input : G     : networkx graph,
 Output: partner_node : node's partner for the shortcut
 '''
 def choose_shortcut_partner(G, node, alpha):
+    alpha = float(alpha)
     nodes = G.nodes()
     nei_set = set(G.neighbors(node))
     nei_set.add(node) #note that we also don't want a self-loop shortcut
@@ -499,12 +500,14 @@ if __name__ == '__main__':
     dim = 1
     alphas = generate_range([0,3],7)
     ps     = [1]
+    num_lookahead = 2 # IE number of 'links' we look out (IE 1 is greedy)
 
     for alpha in alphas:
         print "Running for alpha equal to " + str(alpha)
         for p in ps:
             dcd = runSimulation(N=N, dim=dim, num_graph_gen=1, pair_frac=0.01,
                           printDict=False, num_tries=2, verbose=False,
+                          numMax = num_lookahead,
                           alpha=alpha, p=p, SEED=1)
 
             # TODO: Maybe output a file which details the simulation params,
