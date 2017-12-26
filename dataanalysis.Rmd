@@ -1,6 +1,9 @@
 ---
 title: "R Notebook"
-output: html_notebook
+output: 
+  html_notebook:
+    code_folding: hide
+  
 ---
 
 ### Filename Scraping
@@ -41,7 +44,9 @@ rm(pvector, avector, nvector, dvector, temp, split_strip_filenames, filenames, s
 
 ### Data Loading + Graphing
 
-```{r}
+NOTE: Should add a box and whisker plot at the end of this, potentially in addition
+to this graph (which would only really be illustrative for debugging purposes)
+```{r, message=FALSE}
 library(ggplot2)
 library(readr)
 filename <- df$filename[13]
@@ -51,11 +56,15 @@ N <- df$N[13]
 dim <- df$N[13]
 data <- read_csv(filename)
 seq <- seq_along(data$`lengthOfPathk=1`)
-qplot(seq, data$`lengthOfPathk=1`) + geom_point(aes(y=data$`lengthOfPathk=2`), color="red") +
-  geom_point(aes(y=data$lengthOfShortestPath), color="blue")
+data$seq <- seq
+alphaval <- 0.1
+ggplot(data, aes(x=seq)) +
+  geom_point(aes(y=data$`lengthOfPathk=1`), color="red", alpha = alphaval, position=position_jitter()) +  
+  geom_point(aes(y=data$`lengthOfPathk=2`), color="blue", alpha = alphaval, position=position_jitter()) +
+  geom_point(aes(y=data$lengthOfShortestPath), color="green", alpha = alphaval, position=position_jitter())
 ```
 
-```{r}
+```{r, warning=FALSE}
 zoom <- 50
 ggplot(data, aes(`lengthOfPathk=1`), color="black") + geom_freqpoly(bins=zoom) + 
   geom_freqpoly(aes(data$`lengthOfPathk=2`), color="red", bins=zoom) +
