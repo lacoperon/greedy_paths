@@ -496,23 +496,24 @@ if __name__ == '__main__':
     # Simulation Parameters
     # Please change them here! Otherwise the .csv files will be mislabelled...
 
-    N = 100
+    ns = [100,1000]
     dim = 1
     alphas = generate_range([0,3],7)
     ps     = [1]
     num_lookahead = 2 # IE number of 'links' we look out (IE 1 is greedy)
 
-    for alpha in alphas:
-        print "Running for alpha equal to " + str(alpha)
-        for p in ps:
-            dcd = runSimulation(N=N, dim=dim, num_graph_gen=1, pair_frac=0.01,
-                          printDict=False, num_tries=2, verbose=False,
-                          numMax = num_lookahead,
-                          alpha=alpha, p=p, SEED=1)
+    for N in ns:
+        for alpha in alphas:
+            print "Running for alpha equal to " + str(alpha)
+            for p in ps:
+                dcd = runSimulation(N=N, dim=dim, num_graph_gen=1, pair_frac=0.01,
+                              printDict=False, num_tries=2, verbose=False,
+                              numMax = num_lookahead,
+                              alpha=alpha, p=p, SEED=1)
 
-            # TODO: Maybe output a file which details the simulation params,
-            #       instead of storing them all in the filename (subject to change)
-            filename = "./data_output/sim_"
-            filename += "p_"+str(p)+"_alpha_"+str(alpha)
-            filename += "_N_"+str(N)+"_dim_" + str(dim) + ".csv"
-            write_dcd_to_csv(dcd, filename= filename)
+                # TODO: Maybe output a file which details the simulation params,
+                #       instead of storing them all in the filename (subject to change)
+                filename = "./data_output/sim_"
+                filename += "p_"+str(p)+"_alpha_"+str(alpha)
+                filename += "_N_"+str(N)+"_dim_" + str(dim) + ".csv"
+                write_dcd_to_csv(dcd, filename= filename)
