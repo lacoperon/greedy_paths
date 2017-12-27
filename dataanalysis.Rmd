@@ -63,6 +63,36 @@ ggplot(data, aes(x=seq)) +
   geom_point(aes(y=data$`lengthOfPathk=2`), color="blue", alpha = alphaval, position=position_jitter()) +
   geom_point(aes(y=data$lengthOfShortestPath), color="green", alpha = alphaval, position=position_jitter())
 ```
+```{r}
+
+numMax <- max(data$lengthOfShortestPath, data$`lengthOfPathk=1`,
+              data$`lengthOfPathk=2`)
+
+
+
+
+sp.table <- table(factor(data$lengthOfShortestPath, levels=0:numMax))
+sp.table <- as_data_frame(sp.table)
+sp.table <- rename(sp.table, count=Var1)
+sp.table <- mutate(sp.table, label="SP")
+
+k1.table <- table(factor(data$`lengthOfPathk=1`, levels=0:numMax))
+k1.table <- as_data_frame(k1.table)
+k1.table <- rename(k1.table, count=Var1)
+k1.table <- mutate(k1.table, label="k=1")
+
+k2.table <- table(factor(data$`lengthOfPathk=2`, levels=0:numMax))
+k2.table <- as_data_frame(k2.table)
+k2.table <- rename(k2.table, count=Var1)
+k2.table <- mutate(k2.table, label="k=2")
+
+total_ds <- rbind(sp.table, k1.table, k2.table)
+
+ggplot(total_ds, aes(y=n, x=count)) + geom_point(aes(color=label))
+```
+ToADD: Histogram plots, and the plot that Shai wanted to begin with, IE alpha 
+vs average shortest path for greedy and not so greedy.
+
 
 ```{r, warning=FALSE}
 zoom <- 50
