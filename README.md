@@ -68,12 +68,12 @@ also:
 * shortcuts taken (k = 1)
 * shortcuts taken in shortest path
 
-        instead of sampling pairs, just sample src maybe and use all such
-        targets maybe
+instead of sampling pairs, just sample src maybe and use all such
+targets maybe
 
 curve w steps, alphas, w avg + std
 
-Thoughts from Elliot (Dec 23rd):
+**Thoughts from Elliot (Dec 23rd):**
 
 Do we want to collect the size of the backwards step?
 I'm using Manhattan distance between successive nodes and the trg
