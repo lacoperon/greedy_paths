@@ -20,10 +20,10 @@ to work for all simulation parameters).
 up RStudio -- this would work much better in practice and would speed up running
 simulations)
 
+---
+
 ## Various Unstructured Notes
 #### (not guaranteed to be coherent...)
-
----
 
 See how greedy paths are doing (compared to actual shortest paths)
 compare paths generated to actual shortest paths (nx implements this),
