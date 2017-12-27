@@ -43,7 +43,7 @@ get a bunch of distances, apply the ** - alpha, pick a shortcut proportional
 to value in the rs_alpha array, then run this simulation for many alphas
 and plot (Kleinberg has p=1, so try with this first)
 
-TODO: (21st December, 2017)
+**Notes from Meeting on 21st December, 2017**
 
 Count to see the number of weird cases -- where the num=k case leads to a
 shorter path when compared to the num=k+1 case, and insodoing see how the
