@@ -1,8 +1,27 @@
-Greedy Lattice Test Code
+# Greedy Lattice Test Code
 
 The goal of this collection of code snippets is to reproduce the results in Kleinberg's 'Navigation in a small world' (2000), generalized to different of shortcuts being generated, as well as to higher dimension lattices.
 
-The Nature Brief Communications pdf is in the folder; the code in `greedy_lattice_test.py` is ~somewhat~ no longer spaghetti-fied at the moment, but is in the process of being flagged for parallelization.
+The Nature Brief Communications pdf is in the folder; the simulation code
+is in `greedy_lattice_test.py`, and the code that collects the data and graphs
+it lives in `dataanalysis.Rmd` (this is not quite done yet).
+
+## Workflow
+
+To run a simulation, edit the simulation parameters (found at the end of
+`greedy_lattice_test.py`) and type `python greedy_lattice_test.py` into
+your command line client of choice.
+
+To analyze the data from each run, open up `dataanalysis.Rmd` in RStudio and
+run all of the code blocks (**TODO**: Currently the .Rmd is not generalized
+to work for all simulation parameters).
+
+(**Also TODO:** Add a bash script which knits the .Rmd document without opening
+up RStudio -- this would work much better in practice and would speed up running
+simulations)
+
+## Various Unstructured Notes
+#### (not guaranteed to be coherent...)
 
 ---
 
