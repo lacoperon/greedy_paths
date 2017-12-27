@@ -87,15 +87,21 @@ k2.table <- rename(k2.table, count=Var1)
 k2.table <- mutate(k2.table, label="k=2")
 
 total_ds <- rbind(sp.table, k1.table, k2.table)
+total_ds$count <- as.numeric(total_ds$count)
 
-ggplot(total_ds, aes(y=n, x=count)) + geom_point(aes(color=label))
+ggplot(total_ds, aes(y=n, x=count)) + geom_point(aes(color=label, alpha=0.3)) +
+  labs(title="Count of path lengths",
+       subtitle=paste("For p =", p, ", alpha=",alpha,
+                      ", N=",N,", dim=",dim, sep=""),
+       x="Length of Path Generated",
+       y="Count")
 ```
 ToADD: Histogram plots, and the plot that Shai wanted to begin with, IE alpha 
 vs average shortest path for greedy and not so greedy.
 
 
 ```{r, warning=FALSE}
-zoom <- 50
+zoom <- 100
 ggplot(data, aes(`lengthOfPathk=1`), color="black") + geom_freqpoly(bins=zoom) + 
   geom_freqpoly(aes(data$`lengthOfPathk=2`), color="red", bins=zoom) +
   geom_freqpoly(aes(data$lengthOfShortestPath), color="blue",bins=zoom) +
