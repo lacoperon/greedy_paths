@@ -1,12 +1,12 @@
 # Greedy Lattice Test Code
 
 The goal of this collection of code snippets is to reproduce the results in
- Kleinberg's 'Navigation in a Small World' paper, generalized to different of
- shortcuts being generated, as well as to higher dimension lattices.
+Kleinberg's 'Navigation in a Small World' paper, generalized to more varieties
+of network perturbations, as well as to higher-dimensional lattices.
 
-The simulation code is contained in `greedy_lattice_test.py`, and the code that
-parses the csv files produced from each run, and graphs it,
-lives in `dataanalysis.Rmd` (this is not quite done yet).
+The simulation code is contained in `greedy_lattice_test.py`, and `dataanalysis.Rmd`
+parses the csv files produced from each run, and graphs various measures of
+interest (this is not quite done yet).
 
 ## Workflow
 
