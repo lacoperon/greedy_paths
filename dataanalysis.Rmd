@@ -3,6 +3,7 @@ title: "R Notebook"
 output:
   html_document:
     df_print: paged
+    code_folding: hide
   html_notebook:
     code_folding: hide
 ---
@@ -13,7 +14,7 @@ Firstly, we want to start by noting all csv files contained within the `./data_o
 and list them all out. Then, we want to parse out the p, alpha, N, and dim variables from the
 csv name. Finally, we want to add all of this to a dataframe, let's call it df.
 
-```{r datainput}
+```{r datainput, message=FALSE}
 library(readr)
 library(dplyr)
 
@@ -43,15 +44,17 @@ df <- data_frame(p = as.numeric(pvector),
 rm(pvector, avector, nvector, dvector, temp, split_strip_filenames, stripped_filenames, getelt)
 ```
 
-### Data Loading + Graphing
+## Graphing Simulation Run Data
 
-NOTE: Should add a box and whisker plot at the end of this, potentially in addition
-to this graph (which would only really be illustrative for debugging purposes)
+### Routed Path Length Across Simulation
+The below code graphs the he routed path length, for each of the three routing strategies
+K1, K2 and SP. The routed path length is shown, with one graph per unique N and alpha value combination (ie once per call to  `runSimulation` in `greedy_path_test.py`. No pattern should
+be discernable for the routed path length across the x axis. Over the y
+axis, one can see that, generally speaking, SP < K2 < K1."
 
-This graph is good for debugging purposes; allows us to see the distribution
-of the various paths across each of the simulated runs.
+Note that the x axis corresponds to the time the routing strategy was called 
+for the given N and alpha values. IE 1000 would correspond to the 1000th call.
 
-**TODO: Sort the 
 ```{r, message=FALSE}
 library(ggplot2)
 library(readr)
@@ -76,7 +79,7 @@ for (i in 1:length(df$filename)) {
              size=sizeval,position=position_jitter()) +
   geom_point(aes(y=data$lengthOfShortestPath, color="SP"), alpha = alphaval, 
              size=sizeval,position=position_jitter())+
-  labs(x="Simulation Number", y="Length of Routed Path",
+  labs(x="Scenario #", y="Length of Routed Path",
        color="Routed Path Type",
        title="Routed Path Length Across Simulation",
        subtitle=paste("For p =", p, ", alpha=",alpha,
@@ -85,6 +88,11 @@ for (i in 1:length(df$filename)) {
 }
 ```
 
+### Path Length Count (Aggregated)
+
+The next thing we want to see is the routed path length counts for each of the 
+three routing strategies, for given N and alpha values. Those plots are 
+shown below. 
 
 ```{r message=FALSE}
 
@@ -120,16 +128,18 @@ total_ds$count <- as.numeric(total_ds$count)
 
 print(ggplot(total_ds, aes(y=n, x=count, group=label)) + geom_point(aes(color=label),alpha=0.3) +
         geom_line(aes(color=label)) +
-  labs(title="Path Length Count across simulation",
-       subtitle=paste("For p =", p, ", alpha=",alpha,
-                      ", N=",N,", dim=",dim, sep=""),
+  labs(title="Path Length Count Across Simulation",
+       subtitle=paste("For p =", p, ", alpha=",alpha,", N=",N,", dim=",dim, sep=""),
        x="Length of Path Generated",
        y="Count", color="Routed Path Type"))
 }
 ```
-ToADD: Histogram plots
 
-```{r, warning=FALSE}
+Now, you can see that for some of the plots, it gets a bit messy 
+(ie alpha=3, N=1000, p=1, dim=1). The code below does that, using 
+ggplot's `geom_freqpoly`.
+
+```{r, warning=FALSE, message=FALSE}
 for (i in 1:length(df$filename)) {
   value <- i
   filename <- df$filename[i]
@@ -145,15 +155,19 @@ zoom <- 30
   print(ggplot(data, aes(`lengthOfPathk=1`, color="K1")) + geom_freqpoly(bins=zoom) +
   geom_freqpoly(aes(data$`lengthOfPathk=2`, color="K2"), bins=zoom) +
   geom_freqpoly(aes(data$lengthOfShortestPath, color="SP"),bins=zoom) +
-  xlab("Path Length Count across Simulation (Smoothed)") + ylab("Frequency") +
-  labs(title="Path Length Frequency",
-       subtitle=paste("For p =", p, ", alpha=",alpha,", N=",N,"
-                      , dim=",dim, sep=""),
+  xlab("Path Length Count") + ylab("Frequency") +
+  labs(title="Path Length Frequency Across Simulation (Smoothed)",
+       subtitle=paste("For p =", p, ", alpha=",alpha,", N=",N,", dim=",dim, sep=""),
        color="Routed Path Type") + xlim(0,NA))
 }
 ```
 
+
 ### Aggregate Measures
+
+Finally, we want to be able to plot the mean generated path length
+(and standard deviation) against the alpha value. The code below does that
+(and also aggregates other things, in case we want to graph those later).
 
 ```{r message=FALSE}
 uniquen <- unique(df$N)
@@ -223,21 +237,9 @@ for (nval in unique(df$N)) {
   print(ggplot(aggData, aes(x=aggData$alpha,y= as.numeric(aggData$PathMean), 
                       color=aggData$PathType, group=aggData$PathType)) +
     geom_point() + geom_line() +
-    labs(title="Alpha Value vs. Mean Path (ie like Kleinberg)",
+    labs(title="Alpha Value vs. Mean Path Length (ie Kleinberg)",
          subtitle=paste("For p =", 1, ", N=",nval,", dim=",1, sep=""),
-         y="Mean Path Length", x="Alpha"))
+         y="Mean Path Length", x="Alpha", color="Routed Path Type"))
 }
-```
-
-```{r}
-```
-
-```{r}
-ggplot(aggData, aes(x=aggData$alpha,y= as.numeric(aggData$PathMedian), 
-                      color=aggData$PathType, group=aggData$PathType)) +
-  geom_point() + geom_line() +
-  labs(title="Alpha Value vs. Median Path (ie like Kleinberg)",
-       subtitle=paste("For p =", 1, ", N=",1000,", dim=",1, sep=""),
-       y="Median Path Length", x="Alpha")
 ```
 
