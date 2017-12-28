@@ -44,7 +44,8 @@ df <- data_frame(p = as.numeric(pvector),
            N = as.integer(nvector),
            dim = as.integer(dvector),
            filename = filenames)
-rm(pvector, avector, nvector, dvector, temp, split_strip_filenames, stripped_filenames, getelt)
+rm(pvector, avector, nvector, dvector, temp, split_strip_filenames, stripped_filenames, getelt,
+   seq, filenames)
 ```
 
 ## Graphing Simulation Run Data
@@ -65,7 +66,6 @@ library(readr)
 df <- arrange(df, N, alpha)
 
 for (i in 1:length(df$filename)) {
-  value <- i
   filename <- df$filename[i]
   p <- df$p[i]
   alpha <- df$alpha[i]
@@ -89,6 +89,7 @@ for (i in 1:length(df$filename)) {
                       ", N=",N,", dim=",dim, sep="")
        ))
 }
+rm(alpha, alphaval, dim, filename, i, N, p, sizeval)
 ```
 
 ### Path Length Count (Aggregated)
@@ -136,6 +137,7 @@ print(ggplot(total_ds, aes(y=n, x=count, group=label)) + geom_point(aes(color=la
        x="Length of Path Generated",
        y="Count", color="Routed Path Type"))
 }
+rm(k1.table, k2.table, sp.table, alpha, dim, filename, i, N, numMax, p, value)
 ```
 
 Now, you can see that for some of the plots, it gets a bit messy 
@@ -153,8 +155,7 @@ for (i in 1:length(df$filename)) {
   data <- read_csv(filename)
   data$seq <- seq_along(data$`lengthOfPathk=1`)
 
-# Smoothing parameter
-zoom <- 30
+zoom <- 30 # Smoothing parameter
   print(ggplot(data, aes(`lengthOfPathk=1`, color="K1")) + geom_freqpoly(bins=zoom) +
   geom_freqpoly(aes(data$`lengthOfPathk=2`, color="K2"), bins=zoom) +
   geom_freqpoly(aes(data$lengthOfShortestPath, color="SP"),bins=zoom) +
@@ -163,6 +164,7 @@ zoom <- 30
        subtitle=paste("For p =", p, ", alpha=",alpha,", N=",N,", dim=",dim, sep=""),
        color="Routed Path Type") + xlim(0,NA))
 }
+rm(alpha, dim, filename, i, N, p, value, zoom)
 ```
 
 
