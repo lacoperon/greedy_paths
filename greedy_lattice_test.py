@@ -12,6 +12,9 @@ import glob
 #       -- it won't be for lattices where edges are added, because it's not for
 #       regular lattices
 
+# TODO: Could probably make this faster using dynamic programming on each graph,
+#       Saving each node's distance to trg, and maybe also each node's neighbors
+
 # TODO: Parallelization didn't go so well with Pool.map, but there should be an
 #       easy way to get that done...
 '''
@@ -380,10 +383,8 @@ def runSimulation(N=100, dim=1, num_graph_gen=25, pair_frac=0.01, printDict=Fals
     dcd["attemptNum"] = []
     for num in range(1,numMax+1):
         dcd["lengthOfPathk="+str(num)] = []
-        if num > 1:
-            dcd["backsteps_k="+str(num)] = []
-            dcd["shortcutsTakenk="+str(num)] = []
-
+        dcd["backsteps_k="+str(num)] = []
+        dcd["shortcutsTakenk="+str(num)] = []
 
     # Running sim for a number of graphs
     for graph_number in range(num_graph_gen):
@@ -423,12 +424,11 @@ def runSimulation(N=100, dim=1, num_graph_gen=25, pair_frac=0.01, printDict=Fals
 
                     # Data collection (Part II)
                     dcd["lengthOfPathk="+str(num)] += [result[0]]
-                    if num > 1:
-                        dcd["shortcutsTakenk="+str(num)] += [
-                            shortcuts_taken(result[1])]
-                        dcd["backsteps_k="+str(num)] += [
-                            calc_num_backwards_steps(G, actualShortestPath, trg)
-                        ]
+                    dcd["shortcutsTakenk="+str(num)] += [
+                        shortcuts_taken(result[1])]
+                    dcd["backsteps_k="+str(num)] += [
+                        calc_num_backwards_steps(G, actualShortestPath, trg)
+                    ]
 
                     results_at_given_run += [result]
 
@@ -498,12 +498,14 @@ if __name__ == '__main__':
     # Simulation Parameters
     # Please change them here! Otherwise the .csv files will be mislabelled...
 
-    ns = [100]
+    ns = [100, 1000]
     dim = 1
     alphas = generate_range([0,3],7)
     ps     = [1]
     num_lookahead = 2 # IE number of 'links' we look out (IE 1 is greedy)
 
+
+    # TODO: This is an obvious (obvious) candidate for parallelization
     for N in ns:
         for alpha in alphas:
             print "Running for alpha equal to " + str(alpha)
