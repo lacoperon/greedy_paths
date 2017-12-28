@@ -381,8 +381,8 @@ def runSimulation(N=100, dim=1, num_graph_gen=25, pair_frac=0.01, printDict=Fals
     for num in range(1,numMax+1):
         dcd["lengthOfPathk="+str(num)] = []
         if num > 1:
-            dcd["shortcutsTakenk="+str(num)] = []
             dcd["backsteps_k="+str(num)] = []
+            dcd["shortcutsTakenk="+str(num)] = []
 
 
     # Running sim for a number of graphs
@@ -478,10 +478,12 @@ Input:    dcd : dict (dict w keys as variable names,
 Output :  void (Should write to .csv though...)
 '''
 def write_dcd_to_csv(dcd, filename="test.csv"):
+    keys = sorted(dcd.keys())
     with open(filename, "wb") as outfile:
         writer = csv.writer(outfile)
-        writer.writerow(dcd.keys())
-        writer.writerows(zip(*dcd.values()))
+        writer.writerow(keys)
+        for index in range(len(dcd[keys[0]])):
+            writer.writerow([dcd[x][index] for x in keys])
 
 '''
 ~~~ THE ACTUAL SIMULATION RUN CODE STARTS HERE ~~~
@@ -496,7 +498,7 @@ if __name__ == '__main__':
     # Simulation Parameters
     # Please change them here! Otherwise the .csv files will be mislabelled...
 
-    ns = [100,1000]
+    ns = [100]
     dim = 1
     alphas = generate_range([0,3],7)
     ps     = [1]
@@ -510,6 +512,7 @@ if __name__ == '__main__':
                               printDict=False, num_tries=2, verbose=False,
                               numMax = num_lookahead,
                               alpha=alpha, p=p, SEED=1)
+                # print dcd
 
                 # TODO: Maybe output a file which details the simulation params,
                 #       instead of storing them all in the filename (subject to change)
