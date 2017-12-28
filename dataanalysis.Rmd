@@ -1,11 +1,14 @@
 ---
-title: "R Notebook"
+title: "Analysis of Greedy (+ Not So Greedy) Routing"
+date: "`r format(Sys.time(), '%d %B, %Y')`"
+author: Elliot Williams
 output:
   html_document:
     df_print: paged
     code_folding: hide
   html_notebook:
     code_folding: hide
+
 ---
 
 ### Filename Scraping
@@ -233,13 +236,28 @@ for (nval in unique(df$N)) {
                   K2Short.mean, K2Short.std, K2Short.median,
                   "K2"
                 )
-}
-  print(ggplot(aggData, aes(x=aggData$alpha,y= as.numeric(aggData$PathMean), 
+  }
+  
+  aggData$PathMean <- as.numeric(aggData$PathMean)
+  aggData$PathStd  <- as.numeric(aggData$PathStd)
+  
+  print(ggplot(aggData, aes(x=aggData$alpha,y=aggData$PathMean, 
                       color=aggData$PathType, group=aggData$PathType)) +
     geom_point() + geom_line() +
     labs(title="Alpha Value vs. Mean Path Length (ie Kleinberg)",
          subtitle=paste("For p =", 1, ", N=",nval,", dim=",1, sep=""),
-         y="Mean Path Length", x="Alpha", color="Routed Path Type"))
+         y="Mean Path Length", x="Alpha", color="Routed Path Type")) 
+  
+  print(ggplot(aggData, aes(x=aggData$alpha,y=aggData$PathMean, 
+                      color=aggData$PathType, group=aggData$PathType)) +
+    geom_point() + geom_line() +
+    geom_errorbar(aes(ymin=aggData$PathMean - aggData$PathStd,
+                      ymax=aggData$PathMean + aggData$PathStd,
+                      group=aggData$PathType),
+                  width=.1) +
+    labs(title="Alpha Value vs. Mean Path Length (ie Kleinberg)",
+         subtitle=paste("For p =", 1, ", N=",nval,", dim=",1, sep=""),
+         y="Mean Path Length", x="Alpha", color="Routed Path Type")) 
 }
 ```
 
