@@ -1,15 +1,15 @@
 ---
 title: "R Notebook"
-output: 
+output:
   html_notebook:
     code_folding: hide
-  
+
 ---
 
 ### Filename Scraping
 
 Firstly, we want to start by noting all csv files contained within the `./data_output` directory,
-and list them all out. Then, we want to parse out the p, alpha, N, and dim variables from the 
+and list them all out. Then, we want to parse out the p, alpha, N, and dim variables from the
 csv name. Finally, we want to add all of this to a dataframe, let's call it df.
 
 ```{r datainput}
@@ -67,10 +67,6 @@ ggplot(data, aes(x=seq)) +
 
 numMax <- max(data$lengthOfShortestPath, data$`lengthOfPathk=1`,
               data$`lengthOfPathk=2`)
-
-
-
-
 sp.table <- table(factor(data$lengthOfShortestPath, levels=0:numMax))
 sp.table <- as_data_frame(sp.table)
 sp.table <- rename(sp.table, count=Var1)
@@ -96,17 +92,80 @@ ggplot(total_ds, aes(y=n, x=count)) + geom_point(aes(color=label, alpha=0.3)) +
        x="Length of Path Generated",
        y="Count")
 ```
-ToADD: Histogram plots, and the plot that Shai wanted to begin with, IE alpha 
+ToADD: Histogram plots, and the plot that Shai wanted to begin with, IE alpha
 vs average shortest path for greedy and not so greedy.
 
 
 ```{r, warning=FALSE}
-zoom <- 100
-ggplot(data, aes(`lengthOfPathk=1`), color="black") + geom_freqpoly(bins=zoom) + 
+zoom <- 30
+ggplot(data, aes(`lengthOfPathk=1`), color="black") + geom_freqpoly(bins=zoom) +
   geom_freqpoly(aes(data$`lengthOfPathk=2`), color="red", bins=zoom) +
   geom_freqpoly(aes(data$lengthOfShortestPath), color="blue",bins=zoom) +
   xlab("Length of Routed Path") + ylab("Frequency") +
-  labs(title="Path Length Frequency", 
+  labs(title="Path Length Frequency",
        subtitle=paste("For p =", p, ", alpha=",alpha,", N=",N,", dim=",dim, sep="")) + xlim(0,NA)
 ```
 
+### Aggregate Measures
+
+```{r message=FALSE}
+onehundredn <- filter(df, N == 1000, dim == 1)
+aggData <- data_frame(
+           alpha=numeric(),
+           SPPathMean =numeric(), SPPathStd =numeric(), SPPathMedian =numeric(),
+           SPShortMean=numeric(), SPShortStd=numeric(), SPShortMedian=numeric(),
+           SPBackMean =numeric(), SPBackStd =numeric(), SPBackMedian =numeric(),
+           K1PathMean =numeric(), K1PathStd =numeric(), K1PathMedian =numeric(),
+           K1ShortMean=numeric(), K1ShortStd=numeric(), K1ShortMedian=numeric(),
+           K1BackMean =numeric(), K1BackStd =numeric(), K1BackMedian =numeric(),
+           K2PathMean =numeric(), K2PathStd =numeric(), K2PathMedian =numeric(),
+           K2ShortMean=numeric(), K2ShortStd=numeric(), K2ShortMedian=numeric(),
+           K2BackMean =numeric(), K2BackStd =numeric(), K2BackMedian =numeric()
+           )
+for (i in 1:length(onehundredn$alpha)) {
+  alph     <- onehundredn$alpha[i]
+  filename <- onehundredn$filename[i]
+  rundata  <- read_csv(filename)
+  # Calculates Path-Related Measures
+  SPPath.mean  <- mean(rundata$lengthOfShortestPath)
+  K1Path.mean  <- mean(rundata$`lengthOfPathk=1`)
+  K2Path.mean  <- mean(rundata$`lengthOfPathk=2`)
+  SPPath.std   <- sqrt(var(rundata$lengthOfShortestPath))
+  K1Path.std   <- sqrt(var(rundata$`lengthOfPathk=1`))
+  K2Path.std   <- sqrt(var(rundata$`lengthOfPathk=2`))
+  SPPath.median  <- median(rundata$lengthOfShortestPath)
+  K1Path.median  <- median(rundata$`lengthOfPathk=1`)
+  K2Path.median  <- median(rundata$`lengthOfPathk=2`)
+  # Calculates Backstep-Related Measures
+  SPBack.mean  <- mean(rundata$backsteps_SP)
+  K1Back.mean  <- mean(rundata$`backsteps_k=1`)
+  K2Back.mean  <- mean(rundata$`backsteps_k=2`)
+  SPBack.std   <- sqrt(var(rundata$backsteps_SP))
+  K1Back.std   <- sqrt(var(rundata$`backsteps_k=1`))
+  K2Back.std   <- sqrt(var(rundata$`backsteps_k=2`))
+  SPBack.median  <- median(rundata$backsteps_SP)
+  K1Back.median  <- median(rundata$`backsteps_k=1`)
+  K2Back.median  <- median(rundata$`backsteps_k=2`)
+  # Calculates Shortcut-Related Measures
+  SPShort.mean  <- mean(rundata$shortcutstakenSP)
+  K1Short.mean  <- mean(rundata$`shortcutsTakenk=1`)
+  K2Short.mean  <- mean(rundata$`shortcutsTakenk=2`)
+  SPShort.std   <- sqrt(var(rundata$shortcutstakenSP))
+  K1Short.std   <- sqrt(var(rundata$`shortcutsTakenk=1`))
+  K2Short.std   <- sqrt(var(rundata$`shortcutsTakenk=2`))
+  SPShort.median  <- median(rundata$shortcutstakenSP)
+  K1Short.median  <- median(rundata$`shortcutsTakenk=1`)
+  K2Short.median  <- median(rundata$`shortcutsTakenk=2`)
+  aggData[nrow(aggData)+1,] <- c(
+                SPPath.mean,  SPPath.std,  SPPath.median,
+                SPShort.mean, SPShort.std, SPShort.median,
+                SPBack.mean,  SPBack.std,  SPBack.median,
+                K1Path.mean,  K1Path.std,  K1Path.median,
+                K1Short.mean, K1Short.std, K1Short.median,
+                K1Back.mean,  K1Back.std,  K1Back.median,
+                K2Path.mean,  K2Path.std,  K2Path.median,
+                K2Short.mean, K2Short.std, K2Short.median,
+                K2Back.mean,  K2Back.std,  K2Back.median
+              )
+}
+```
