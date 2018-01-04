@@ -495,15 +495,13 @@ operations to succeed.
 '''
 
 class simThread (threading.Thread):
-   def __init__(self, threadID, name, counter):
+   def __init__(self, threadID):
       threading.Thread.__init__(self)
       self.threadID = threadID
-      self.name = name
-      self.counter = counter
    def run(self):
-      print ("Starting " + self.name)
+      print ("Starting Thread-{}".format(self.threadID))
       time.sleep(5)
-      print ("Exiting " + self.name)
+      print ("Exiting  Thread-{}".format(self.threadID))
 
 '''
 ~~~ THE ACTUAL SIMULATION RUN CODE STARTS HERE ~~~
@@ -523,7 +521,7 @@ if __name__ == '__main__':
     alphas = generate_range([0,3],7)
     ps     = [1]
     num_lookahead = 2 # IE number of 'links' we look out (IE 1 is greedy)
-    NUM_THREADS = 2 # SHOULD OPTIMISE THIS -->
+    NUM_MAX_THREADS = 3 # SHOULD OPTIMISE THIS -->
                     # https://stackoverflow.com/questions/481970/how-many-threads-is-too-many
 
 
@@ -535,15 +533,19 @@ if __name__ == '__main__':
             for p in ps:
                 thread_init_queue.put([N, alpha, p])
 
-    for i in range(5):
-        # Create new threads
-        cur_thread = simThread(i, "Thread-"+str(i), i)
-        cur_thread.start()
+    thread_list = []
+    i = 1
+    while (thread_init_queue.qsize() != 0):
+        num_threads = threading.active_count()
+        if num_threads < NUM_MAX_THREADS:
+            if thread_init_queue.qsize() != 0:
+                input_tuple = thread_init_queue.get()
+                newThread = simThread(i)
+                newThread.start()
+                i += 1
+                thread_init_queue.task_done()
 
-    print(thread_init_queue.qsize())
-    print(threading.active_count())
-    for thread in thread_list:
-        thread.join()
+    thread_init_queue.join()
 
     # SEE ALSO: https://docs.python.org/2/library/queue.html
 
