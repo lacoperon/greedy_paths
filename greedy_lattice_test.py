@@ -5,6 +5,9 @@ import operator
 import csv
 import os
 import glob
+import threading
+import time
+from Queue import *
 
 # TODO: Try to code up a way to check if we're 'stuck' in local regions,
 #       although I don't think that's technically possible for unperturbed lattices
@@ -486,6 +489,23 @@ def write_dcd_to_csv(dcd, filename="test.csv"):
             writer.writerow([dcd[x][index] for x in keys])
 
 '''
+The following defines a Thread class that should contain everything required
+to run `runSimulation` on multiple threads, in so doing allowing for multicore
+operations to succeed.
+'''
+
+class simThread (threading.Thread):
+   def __init__(self, threadID, name, counter):
+      threading.Thread.__init__(self)
+      self.threadID = threadID
+      self.name = name
+      self.counter = counter
+   def run(self):
+      print ("Starting " + self.name)
+      time.sleep(5)
+      print ("Exiting " + self.name)
+
+'''
 ~~~ THE ACTUAL SIMULATION RUN CODE STARTS HERE ~~~
 '''
 if __name__ == '__main__':
@@ -503,22 +523,44 @@ if __name__ == '__main__':
     alphas = generate_range([0,3],7)
     ps     = [1]
     num_lookahead = 2 # IE number of 'links' we look out (IE 1 is greedy)
+    NUM_THREADS = 2 # SHOULD OPTIMISE THIS -->
+                    # https://stackoverflow.com/questions/481970/how-many-threads-is-too-many
 
 
-    # TODO: This is an obvious (obvious) candidate for parallelization
+    thread_init_queue = Queue()
+    thread_run_queue  = Queue()
+
     for N in ns:
         for alpha in alphas:
-            print "Running for alpha equal to " + str(alpha)
             for p in ps:
-                dcd = runSimulation(N=N, dim=dim, num_graph_gen=1, pair_frac=0.01,
-                              printDict=False, num_tries=2, verbose=False,
-                              numMax = num_lookahead,
-                              alpha=alpha, p=p, SEED=1)
-                # print dcd
+                thread_init_queue.put([N, alpha, p])
 
-                # TODO: Maybe output a file which details the simulation params,
-                #       instead of storing them all in the filename (subject to change)
-                filename = "./data_output/sim_"
-                filename += "p_"+str(p)+"_alpha_"+str(alpha)
-                filename += "_N_"+str(N)+"_dim_" + str(dim) + ".csv"
-                write_dcd_to_csv(dcd, filename= filename)
+    for i in range(5):
+        # Create new threads
+        cur_thread = simThread(i, "Thread-"+str(i), i)
+        cur_thread.start()
+
+    print(thread_init_queue.qsize())
+    print(threading.active_count())
+    for thread in thread_list:
+        thread.join()
+
+    # SEE ALSO: https://docs.python.org/2/library/queue.html
+
+    # TODO: This is an obvious (obvious) candidate for parallelization
+    # for N in ns:
+    #     for alpha in alphas:
+    #         print "Running for alpha equal to " + str(alpha)
+    #         for p in ps:
+    #             dcd = runSimulation(N=N, dim=dim, num_graph_gen=1, pair_frac=0.01,
+    #                           printDict=False, num_tries=2, verbose=False,
+    #                           numMax = num_lookahead,
+    #                           alpha=alpha, p=p, SEED=1)
+    #             # print dcd
+    #
+    #             # TODO: Maybe output a file which details the simulation params,
+    #             #       instead of storing them all in the filename (subject to change)
+    #             filename = "./data_output/sim_"
+    #             filename += "p_"+str(p)+"_alpha_"+str(alpha)
+    #             filename += "_N_"+str(N)+"_dim_" + str(dim) + ".csv"
+    #             write_dcd_to_csv(dcd, filename= filename)
