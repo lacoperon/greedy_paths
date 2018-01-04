@@ -25,18 +25,23 @@ def print_time(threadName, delay, counter):
       counter -= 1
 
 def print_to_csv(value1, value2, filename):
+    # Note: Should probably use a lock when writing to the same file
+    # http://effbot.org/zone/thread-synchronization.htm
+    # https://stackoverflow.com/questions/33107019/multiple-threads-writing-to-the-same-csv-in-python
     with open(filename, "wb") as outfile:
         writer = csv.writer(outfile)
         writer.writerow([value1, value2])
         outfile.close()
 
-# Create new threads
-thread1 = myThread(1, "Thread-1", 1)
-thread2 = myThread(2, "Thread-2", 2)
+thread_list = []
 
-# Start new Threads
-thread1.start()
-thread2.start()
-thread1.join()
-thread2.join()
+for i in range(5):
+    # Create new threads
+    cur_thread = myThread(i, "Thread-"+str(i), i)
+    cur_thread.start()
+    thread_list += [cur_thread]
+
+for thread in thread_list:
+    thread.join()
+
 print ("Exiting Main Thread")
