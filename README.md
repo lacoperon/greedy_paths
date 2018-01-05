@@ -82,3 +82,14 @@ that there are backwards steps that are more backwards than others.
 
 again, do we want to collect the size of these steps? What does this
 actually look like in practice
+
+**Thoughts fromm Elliot (Jan 4):**
+
+How many cores does the computer we're gonna run this on have?
+(ie is it worth parallelizing everything, down to the src trg stuff for each
+ graph? Yes if a huge # of cores, no if the grain of alpha is enough to be a
+ rate limiting step).
+
+ --> AKA yes, if running on wesleyan HPC cluster
+
+ How to lower the std dev bars? Maybe I'm just tired but I can't think of how to
