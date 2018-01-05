@@ -357,12 +357,11 @@ Input:  N   : int (# of nodes desired in lattice (upper bound)),
         verbose : bool (whether or not to print out everything),
         alpha : float (what alpha value to use for the sims),
         p : float (probability of a given node having a shortcut added to it),
-        SEED : int (seed for the run)
 Output: TBD (should be void, need to write code to output various desired
              measures for each run to a .csv file)
 '''
 def runSimulation(N=100, dim=1, num_graph_gen=25, pair_frac=0.01, printDict=False,
-                 num_tries=2, verbose=False, alpha=2., p=1, numMax=2, SEED=1):
+                 num_tries=2, verbose=False, alpha=2., p=1, numMax=2):
     grid_input = [int(N ** (1. / float(dim)))] * dim
     actual_N = reduce(operator.mul, grid_input)
     assert isinstance(dim, int) and dim > 0
@@ -373,8 +372,6 @@ def runSimulation(N=100, dim=1, num_graph_gen=25, pair_frac=0.01, printDict=Fals
 
     if actual_N != N:
         print("********\n The "+str(dim)+" root of N is not an int\n********")
-
-    random.seed(SEED)
 
     dcd = {} #Dict collecting results
 
@@ -406,6 +403,11 @@ def runSimulation(N=100, dim=1, num_graph_gen=25, pair_frac=0.01, printDict=Fals
             src = G.nodes()[src_index]
             trg = G.nodes()[trg_index]
 
+            ##TODO: This is another obvious point for parallelization, for
+            ##a given graph, src, and trg
+
+
+            # TODO: Should we leave this in here if we're running for super large N?
             actualShortestPath = nx.shortest_path(G, source=src, target=trg)
 
             for attemptNum in range(num_tries):
@@ -481,6 +483,7 @@ Input:    dcd : dict (dict w keys as variable names,
 Output :  void (Should write to .csv though...)
 '''
 def write_dcd_to_csv(dcd, filename="test.csv"):
+    print("Touched for " + filename)
     keys = sorted(dcd.keys())
     with open(filename, "wb") as outfile:
         writer = csv.writer(outfile)
@@ -493,14 +496,24 @@ The following defines a Thread class that should contain everything required
 to run `runSimulation` on multiple threads, in so doing allowing for multicore
 operations to succeed.
 '''
-
 class simThread (threading.Thread):
-   def __init__(self, threadID):
+   def __init__(self, threadID, input_tuple):
       threading.Thread.__init__(self)
       self.threadID = threadID
+      self.N = input_tuple[0]
+      self.alpha = input_tuple[1]
+      self.p = input_tuple[2]
    def run(self):
-      print ("Starting Thread-{}".format(self.threadID))
-      time.sleep(5)
+      print ("Starting Thread-{} for {}".format(self.threadID, input_tuple))
+      dcd = runSimulation(N=self.N, dim=dim, num_graph_gen=1, pair_frac=0.01,
+                                printDict=False, num_tries=2, verbose=False,
+                                numMax = num_lookahead,
+                                alpha=self.alpha, p=self.p)
+      print ("Writing CSV for Thread-{}".format(self.threadID))
+      filename = "./data_output/sim_"
+      filename += "p_"+str(self.p)+"_alpha_"+str(self.alpha)
+      filename += "_N_"+str(self.N)+"_dim_" + str(dim) + ".csv"
+      write_dcd_to_csv(dcd, filename= filename)
       print ("Exiting  Thread-{}".format(self.threadID))
 
 '''
@@ -516,12 +529,13 @@ if __name__ == '__main__':
     # Simulation Parameters
     # Please change them here! Otherwise the .csv files will be mislabelled...
 
-    ns = [100, 1000]
+    random.seed(1)
+    ns = [100,1000,10000]
     dim = 1
     alphas = generate_range([0,3],7)
     ps     = [1]
     num_lookahead = 2 # IE number of 'links' we look out (IE 1 is greedy)
-    NUM_MAX_THREADS = 3 # SHOULD OPTIMISE THIS -->
+    NUM_MAX_THREADS = 9 # SHOULD OPTIMISE THIS -->
                     # https://stackoverflow.com/questions/481970/how-many-threads-is-too-many
 
 
@@ -540,7 +554,7 @@ if __name__ == '__main__':
         if num_threads < NUM_MAX_THREADS:
             if thread_init_queue.qsize() != 0:
                 input_tuple = thread_init_queue.get()
-                newThread = simThread(i)
+                newThread = simThread(i, input_tuple)
                 newThread.start()
                 i += 1
                 thread_init_queue.task_done()
