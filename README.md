@@ -93,3 +93,7 @@ How many cores does the computer we're gonna run this on have?
  --> AKA yes, if running on wesleyan HPC cluster
 
  How to lower the std dev bars? Maybe I'm just tired but I can't think of how to
+
+ ALSO, for the graphs, don't we want the bars to be boostrapped std dev of the
+ actual run average length, as opposed to the std dev of the paths for one particular run?
+ The former seems like it would converge for many iterations, whereas the latter doesn't.

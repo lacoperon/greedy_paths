@@ -482,6 +482,9 @@ Input:    dcd : dict (dict w keys as variable names,
                       of those columns)
 Output :  void (Should write to .csv though...)
 '''
+# TODO: Implement this through buffering (or, even better, multithreaded
+# row writing with threaded locking -- maybe in batches -- or perhaps
+# writing to a database for increased efficiency for map reduce stuff)
 def write_dcd_to_csv(dcd, filename="test.csv"):
     print("Touched for " + filename)
     keys = sorted(dcd.keys())
