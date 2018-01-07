@@ -565,21 +565,3 @@ if __name__ == '__main__':
     thread_init_queue.join()
 
     # SEE ALSO: https://docs.python.org/2/library/queue.html
-
-    # TODO: This is an obvious (obvious) candidate for parallelization
-    # for N in ns:
-    #     for alpha in alphas:
-    #         print "Running for alpha equal to " + str(alpha)
-    #         for p in ps:
-    #             dcd = runSimulation(N=N, dim=dim, num_graph_gen=1, pair_frac=0.01,
-    #                           printDict=False, num_tries=2, verbose=False,
-    #                           numMax = num_lookahead,
-    #                           alpha=alpha, p=p, SEED=1)
-    #             # print dcd
-    #
-    #             # TODO: Maybe output a file which details the simulation params,
-    #             #       instead of storing them all in the filename (subject to change)
-    #             filename = "./data_output/sim_"
-    #             filename += "p_"+str(p)+"_alpha_"+str(alpha)
-    #             filename += "_N_"+str(N)+"_dim_" + str(dim) + ".csv"
-    #             write_dcd_to_csv(dcd, filename= filename)
