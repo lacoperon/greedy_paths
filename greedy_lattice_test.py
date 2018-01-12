@@ -364,6 +364,8 @@ def runSimulation(N=100, dim=1, num_graph_gen=25, pair_frac=0.01, printDict=Fals
                  num_tries=2, verbose=False, alpha=2., p=1, numMax=2,
                  NUM_PATHFIND_THREADS = 0):
 
+    lock = threading.RLock() # lock for a given simulation's data file
+
     grid_input = [int(N ** (1. / float(dim)))] * dim
     actual_N = reduce(operator.mul, grid_input)
     assert isinstance(dim, int) and dim > 0
@@ -415,8 +417,8 @@ def runSimulation(N=100, dim=1, num_graph_gen=25, pair_frac=0.01, printDict=Fals
             for attemptNum in range(num_tries):
                 results_at_given_run = []
 
-                # Maybe should add this to a separate function and refactor,
-                # because this looks mighty funky
+                for num in range(1,numMax+1):
+                    result = compute_not_so_greedy_route(G,src,trg,num=num)
 
                 # Data Collection (Part I)
                 dcd["graphNum"] += [graph_number+1]
@@ -461,6 +463,126 @@ def runSimulation(N=100, dim=1, num_graph_gen=25, pair_frac=0.01, printDict=Fals
             print len(dcd[key])
 
     return dcd
+
+def runSimulationMultithread(N=100, dim=1, num_graph_gen=25, pair_frac=0.01, printDict=False,
+                 num_tries=2, verbose=False, alpha=2., p=1, numMax=2,
+                 NUM_PATHFIND_THREADS = 0):
+
+    lock = threading.RLock() # lock for a given simulation's data file
+
+    grid_input = [int(N ** (1. / float(dim)))] * dim
+    actual_N = reduce(operator.mul, grid_input)
+    assert isinstance(dim, int) and dim > 0
+    assert isinstance(N,   int)
+    assert actual_N <= N
+
+    print "Running simulation on " + str(grid_input) + " lattice"
+
+    if actual_N != N:
+        print("********\n The "+str(dim)+" root of N is not an int\n********")
+
+    dcd        = initialize_dcd(numMax) # initializes data collection dictionary
+    graph_list = initialize_graphs(num_graph_gen, p, alpha)
+
+    # Running sim for a number of graphs
+    for graph_number in range(num_graph_gen):
+        G = nx.grid_graph(grid_input, periodic=False)
+        G = G.to_directed()
+        G = add_shortcuts(G, p=p, alpha=alpha, verbose=verbose)
+
+        if verbose:
+            print ("Running with "
+                    + str(int(pair_frac * (actual_N * (actual_N - 1))))
+                    + " pairs of nodes")
+        for j in range( int(pair_frac * (actual_N * (actual_N - 1)))):
+            # randomly selects src, trg from G.nodes() WITH REPLACEMENT
+            src_index = random.randint(0,actual_N-1)
+            trg_index = random.randint(0,actual_N-1)
+            src = G.nodes()[src_index]
+            trg = G.nodes()[trg_index]
+
+            ##TODO: This is another obvious point for parallelization, for
+            ##a given graph, src, and trg
+
+
+            # TODO: Should we leave this in here if we're running for super large N?
+            actualShortestPath = nx.shortest_path(G, source=src, target=trg)
+
+            for attemptNum in range(num_tries):
+                results_at_given_run = []
+
+                for num in range(1,numMax+1):
+                    result = compute_not_so_greedy_route(G,src,trg,num=num)
+
+                # Data Collection (Part I)
+                dcd["graphNum"] += [graph_number+1]
+                dcd["shortcutstakenSP"] += [shortcuts_taken(actualShortestPath)]
+                dcd["lengthOfShortestPath"] += [len(actualShortestPath)-1]
+                dcd["backsteps_SP"] += [calc_num_backwards_steps(G,
+                                        actualShortestPath, trg)]
+                dcd["attemptNum"] += [attemptNum]
+
+                for num in range(1,numMax+1):
+                    result = compute_not_so_greedy_route(G,src,trg,num=num)
+
+                    # Data collection (Part II)
+                    dcd["lengthOfPathk="+str(num)] += [result[0]]
+                    dcd["shortcutsTakenk="+str(num)] += [
+                        shortcuts_taken(result[1])]
+                    dcd["backsteps_k="+str(num)] += [
+                        calc_num_backwards_steps(G, actualShortestPath, trg)
+                    ]
+
+                    results_at_given_run += [result]
+
+                gr_result   = results_at_given_run[0]
+                nsgr_result = results_at_given_run[1]
+
+                if verbose:
+                    print "-----------------"
+                    print "Attempt Number " + str(attemptNum)
+                    print "Routing from " + str(src) + " to " + str(trg)
+                    print "Greedy route is: "
+                    print gr_result
+                    print "Not so greedy route is: "
+                    print nsgr_result
+                    print "Actual shortest path is"
+                    print actualShortestPath
+                    print "Actual shortest path is length:"
+                    print (len(actualShortestPath) -1)
+
+    if printDict:
+        for key in dcd:
+            print key
+            print len(dcd[key])
+
+    return dcd
+
+
+'''
+Helper function to initialize a data-collecting dictionary
+'''
+def initialize_dcd(numMax):
+    dcd = {} #Dict collecting results
+
+    #initializing dict columns (maybe this should be its own function)
+    dcd["shortcutstakenSP"] = []
+    dcd["lengthOfShortestPath"] = []
+    dcd["backsteps_SP"] = []
+    dcd["graphNum"] = []
+    dcd["attemptNum"] = []
+    for num in range(1,numMax+1):
+        dcd["lengthOfPathk="+str(num)] = []
+        dcd["backsteps_k="+str(num)] = []
+        dcd["shortcutsTakenk="+str(num)] = []
+
+    return dcd
+
+'''
+Helper function for multithreaded initialization of all graphs used in a sim
+'''
+def initialize_graphs(num_graph_gen, p, alpha):
+    pass
 
 '''
 Function that generates a range of values, from xmin to xmax, with
