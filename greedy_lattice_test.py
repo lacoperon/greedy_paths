@@ -361,7 +361,9 @@ Output: TBD (should be void, need to write code to output various desired
              measures for each run to a .csv file)
 '''
 def runSimulation(N=100, dim=1, num_graph_gen=25, pair_frac=0.01, printDict=False,
-                 num_tries=2, verbose=False, alpha=2., p=1, numMax=2):
+                 num_tries=2, verbose=False, alpha=2., p=1, numMax=2,
+                 NUM_PATHFIND_THREADS = 0):
+
     grid_input = [int(N ** (1. / float(dim)))] * dim
     actual_N = reduce(operator.mul, grid_input)
     assert isinstance(dim, int) and dim > 0
@@ -540,6 +542,8 @@ if __name__ == '__main__':
     num_lookahead = 2 # IE number of 'links' we look out (IE 1 is greedy)
     NUM_MAX_THREADS = 9 # SHOULD OPTIMISE THIS -->
                     # https://stackoverflow.com/questions/481970/how-many-threads-is-too-many
+
+
 
 
     thread_init_queue = Queue()
