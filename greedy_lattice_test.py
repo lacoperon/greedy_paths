@@ -484,11 +484,32 @@ def runSimulationMultithread(N=100, dim=1, num_graph_gen=25, pair_frac=0.01, pri
     dcd        = initialize_dcd(numMax) # initializes data collection dictionary
     graph_list = initialize_graphs(num_graph_gen, N, p, alpha, NUM_MAX_THREADS)
 
+    '''
+    The following defines a Thread class that should contain everything required
+    to run multithreaded graph generation, in so doing allowing for multicore
+    operations to succeed.
+    '''
+    class pathfindThread (threading.Thread):
+       def __init__(self, input_tuple):
+          threading.Thread.__init__(self)
+          self.threadID = threadID
+          graph_num = input_tuple[0]
+          self.G = graph_list[graph_num]
+          src_index = input_tuple[1]
+          self.src = self.G[src_index]
+          trg_index = input_tuple[2]
+          self.trg = self.G[trg_index]
+          self.k_num = input_tuple[3]
 
+       def run(self):
+          print ("Starting PathFind Thread-{}".format(self.threadID))
+          # TODO: Add code in here
+          print ("Exiting Thread for Pathfind-{}".format(self.threadID))
+
+    pathfind_queue = Queue()
 
     # Running sim for a number of graphs
-    for graph_number in range(num_graph_gen):
-        G = graph_list[graph_number]
+    for graph_num in range(num_graph_gen):
         if verbose:
             print ("Running with "
                     + str(int(pair_frac * (actual_N * (actual_N - 1))))
@@ -497,58 +518,22 @@ def runSimulationMultithread(N=100, dim=1, num_graph_gen=25, pair_frac=0.01, pri
             # randomly selects src, trg from G.nodes() WITH REPLACEMENT
             src_index = random.randint(0,actual_N-1)
             trg_index = random.randint(0,actual_N-1)
-            src = G.nodes()[src_index]
-            trg = G.nodes()[trg_index]
-
-            ##TODO: This is another obvious point for parallelization, for
-            ##a given graph, src, and trg
-
-
-            # TODO: Should we leave this in here if we're running for super large N?
-            actualShortestPath = nx.shortest_path(G, source=src, target=trg)
-
             for attemptNum in range(num_tries):
-                results_at_given_run = []
-
                 for num in range(1,numMax+1):
-                    result = compute_not_so_greedy_route(G,src,trg,num=num)
+                    pathfind_queue.put(graph_num, src_index, trg_index, num)
 
-                # Data Collection (Part I)
-                dcd["graphNum"] += [graph_number+1]
-                dcd["shortcutstakenSP"] += [shortcuts_taken(actualShortestPath)]
-                dcd["lengthOfShortestPath"] += [len(actualShortestPath)-1]
-                dcd["backsteps_SP"] += [calc_num_backwards_steps(G,
-                                        actualShortestPath, trg)]
-                dcd["attemptNum"] += [attemptNum]
+    i = 1
+    while (pathfind_queue.qsize() != 0):
+        num_threads = threading.active_count()
+        if num_threads < NUM_MAX_THREADS:
+            if pathfind_queue.qsize() != 0:
+                input_tuple = pathfind_queue.get()
+                newThread = pathfindThread(i, input_tuple)
+                newThread.start()
+                i += 1
+                pathfind_queue.task_done()
 
-                for num in range(1,numMax+1):
-                    result = compute_not_so_greedy_route(G,src,trg,num=num)
-
-                    # Data collection (Part II)
-                    dcd["lengthOfPathk="+str(num)] += [result[0]]
-                    dcd["shortcutsTakenk="+str(num)] += [
-                        shortcuts_taken(result[1])]
-                    dcd["backsteps_k="+str(num)] += [
-                        calc_num_backwards_steps(G, actualShortestPath, trg)
-                    ]
-
-                    results_at_given_run += [result]
-
-                gr_result   = results_at_given_run[0]
-                nsgr_result = results_at_given_run[1]
-
-                if verbose:
-                    print "-----------------"
-                    print "Attempt Number " + str(attemptNum)
-                    print "Routing from " + str(src) + " to " + str(trg)
-                    print "Greedy route is: "
-                    print gr_result
-                    print "Not so greedy route is: "
-                    print nsgr_result
-                    print "Actual shortest path is"
-                    print actualShortestPath
-                    print "Actual shortest path is length:"
-                    print (len(actualShortestPath) -1)
+    pathfind_queue.join()
 
     if printDict:
         for key in dcd:
@@ -583,7 +568,7 @@ Helper function for multithreaded initialization of all graphs used in a sim
 def initialize_graphs(num_graph_gen, N, p, alpha, NUM_MAX_THREADS=1):
     '''
     The following defines a Thread class that should contain everything required
-    to run `runSimulation` on multiple threads, in so doing allowing for multicore
+    to run multithreaded graph generation, in so doing allowing for multicore
     operations to succeed.
     '''
     class graphThread (threading.Thread):
