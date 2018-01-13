@@ -464,6 +464,8 @@ def runSimulation(N=100, dim=1, num_graph_gen=25, pair_frac=0.01, printDict=Fals
 
     return dcd
 
+
+# TODO: test this (should be written correctly maybe)
 def runSimulationMultithread(N=100, dim=1, num_graph_gen=25, pair_frac=0.01, printDict=False,
                  num_tries=2, verbose=False, alpha=2., p=1, numMax=2,
                  NUM_MAX_THREADS = 1):
@@ -486,24 +488,48 @@ def runSimulationMultithread(N=100, dim=1, num_graph_gen=25, pair_frac=0.01, pri
 
     '''
     The following defines a Thread class that should contain everything required
-    to run multithreaded graph generation, in so doing allowing for multicore
-    operations to succeed.
+    to run multithreaded pathfinding
     '''
     class pathfindThread (threading.Thread):
        def __init__(self, input_tuple):
           threading.Thread.__init__(self)
           self.threadID = threadID
           graph_num = input_tuple[0]
+          self.graph_num
           self.G = graph_list[graph_num]
           src_index = input_tuple[1]
           self.src = self.G[src_index]
           trg_index = input_tuple[2]
           self.trg = self.G[trg_index]
-          self.k_num = input_tuple[3]
+          self.numMax = input_tuple[3]
+          self.numAttempts = input_tuple[4]
 
        def run(self):
           print ("Starting PathFind Thread-{}".format(self.threadID))
-          # TODO: Add code in here
+          actualShortestPath = nx.shortest_path(G, source=self.src, target=self.trg)
+          results = []
+          for attemptNum in range(self.numAttempts):
+              for num in range(1,self.numMax+1):
+                  results.append([compute_not_so_greedy_route(G,src,trg,num=num), knum])
+
+
+          with lock:
+             dcd["graphNum"] += [self.graphNum+1]
+             dcd["shortcutstakenSP"] += [shortcuts_taken(actualShortestPath)]
+             dcd["lengthOfShortestPath"] += [len(actualShortestPath)-1]
+             dcd["backsteps_SP"] += [calc_num_backwards_steps(G,
+                                     actualShortestPath, trg)]
+             for entry in results:
+                  result, knum = entry
+
+                  # Data collection (Part II)
+                  dcd["lengthOfPathk="+str(knum)] += [result[0]]
+                  dcd["shortcutsTakenk="+str(knum)] += [
+                      shortcuts_taken(result[1])]
+                  dcd["backsteps_k="+str(knum)] += [
+                      calc_num_backwards_steps(G, actualShortestPath, trg)
+                  ]
+
           print ("Exiting Thread for Pathfind-{}".format(self.threadID))
 
     pathfind_queue = Queue()
@@ -519,8 +545,7 @@ def runSimulationMultithread(N=100, dim=1, num_graph_gen=25, pair_frac=0.01, pri
             src_index = random.randint(0,actual_N-1)
             trg_index = random.randint(0,actual_N-1)
             for attemptNum in range(num_tries):
-                for num in range(1,numMax+1):
-                    pathfind_queue.put(graph_num, src_index, trg_index, num)
+                    pathfind_queue.put(graph_num, src_index, trg_index, numMax, numAttempts)
 
     i = 1
     while (pathfind_queue.qsize() != 0):
@@ -710,7 +735,6 @@ if __name__ == '__main__':
             for p in ps:
                 thread_init_queue.put([N, alpha, p])
 
-    thread_list = []
     i = 1
     while (thread_init_queue.qsize() != 0):
         num_threads = threading.active_count()
