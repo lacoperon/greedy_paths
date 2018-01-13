@@ -466,7 +466,7 @@ def runSimulation(N=100, dim=1, num_graph_gen=25, pair_frac=0.01, printDict=Fals
 
 def runSimulationMultithread(N=100, dim=1, num_graph_gen=25, pair_frac=0.01, printDict=False,
                  num_tries=2, verbose=False, alpha=2., p=1, numMax=2,
-                 NUM_PATHFIND_THREADS = 0):
+                 NUM_MAX_THREADS = 1):
 
     lock = threading.RLock() # lock for a given simulation's data file
 
@@ -482,14 +482,13 @@ def runSimulationMultithread(N=100, dim=1, num_graph_gen=25, pair_frac=0.01, pri
         print("********\n The "+str(dim)+" root of N is not an int\n********")
 
     dcd        = initialize_dcd(numMax) # initializes data collection dictionary
-    graph_list = initialize_graphs(num_graph_gen, p, alpha)
+    graph_list = initialize_graphs(num_graph_gen, N, p, alpha, NUM_MAX_THREADS)
+
+
 
     # Running sim for a number of graphs
     for graph_number in range(num_graph_gen):
-        G = nx.grid_graph(grid_input, periodic=False)
-        G = G.to_directed()
-        G = add_shortcuts(G, p=p, alpha=alpha, verbose=verbose)
-
+        G = graph_list[graph_number]
         if verbose:
             print ("Running with "
                     + str(int(pair_frac * (actual_N * (actual_N - 1))))
@@ -581,8 +580,62 @@ def initialize_dcd(numMax):
 '''
 Helper function for multithreaded initialization of all graphs used in a sim
 '''
-def initialize_graphs(num_graph_gen, p, alpha):
-    pass
+def initialize_graphs(num_graph_gen, N, p, alpha, NUM_MAX_THREADS=1):
+    '''
+    The following defines a Thread class that should contain everything required
+    to run `runSimulation` on multiple threads, in so doing allowing for multicore
+    operations to succeed.
+    '''
+    class graphThread (threading.Thread):
+       def __init__(self, threadID, input_tuple):
+          threading.Thread.__init__(self)
+          self.threadID = threadID
+          self.N = input_tuple[0]
+          self.p = input_tuple[1]
+          self.alpha = input_tuple[2]
+          self.verbose = False
+
+       def run(self):
+          print ("Starting Graph Gen Thread-{}".format(input_tuple))
+          G = nx.grid_graph(grid_input, periodic=False)
+          G = G.to_directed()
+          G = add_shortcuts(G, p=self.p, alpha=self.alpha, verbose=self.verbose)
+          graph_list[self.numGraph] = G
+          print ("Exiting Thread for GraphGen-{}".format(self.numGraph))
+
+
+    assert NUM_MAX_THREADS > 1 and isinstance(NUM_MAX_THREADS, int)
+    grid_input = [int(N ** (1. / float(dim)))] * dim
+    actual_N = reduce(operator.mul, grid_input)
+    assert isinstance(dim, int) and dim > 0
+    assert isinstance(N,   int) and actual_N <= N
+
+    print "Generating {} graphs for {} lattice, alpha : {}, p: {}".format(
+        num_graph_gen, N, alpha, p
+        )
+    if actual_N != N:
+        print("********\n The "+str(dim)+" root of N is not an int\n********")
+
+    # Initializes list of generated graphs (lists are thread-safe)
+    graph_list = [0] * num_graph_gen
+    # Initializes Queue used to keep track of graph-generating threads
+    graph_gen_queue = Queue()
+    for _ in range(num_graph_gen):
+        graph_gen_queue.put([N, p, alpha])
+
+    i = 1
+    while (graph_gen_queue.qsize() != 0):
+        num_threads = threading.active_count()
+        if num_threads < NUM_MAX_THREADS:
+            if graph_gen_queue.qsize() != 0:
+                input_tuple = graph_gen_queue.get()
+                newThread = graphThread(i, input_tuple)
+                newThread.start()
+                i += 1
+                graph_gen_queue.task_done()
+
+    thread_init_queue.join()
+    return graph_list
 
 '''
 Function that generates a range of values, from xmin to xmax, with
@@ -665,11 +718,7 @@ if __name__ == '__main__':
     NUM_MAX_THREADS = 9 # SHOULD OPTIMISE THIS -->
                     # https://stackoverflow.com/questions/481970/how-many-threads-is-too-many
 
-
-
-
     thread_init_queue = Queue()
-    thread_run_queue  = Queue()
 
     for N in ns:
         for alpha in alphas:
