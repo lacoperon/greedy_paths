@@ -290,6 +290,8 @@ Input : G     : networkx graph,
 
 Output: partner_node : node's partner for the shortcut
 '''
+# Just in case this becomes undirected -- be sure that shortcuts aren't
+# duplicated, because that shouldn't be allowed
 def choose_shortcut_partner(G, node, alpha):
     alpha = float(alpha)
     nodes = G.nodes()
@@ -720,7 +722,7 @@ if __name__ == '__main__':
     # Please change them here! Otherwise the .csv files will be mislabelled...
 
     random.seed(1)
-    ns = [100,1000,10000]
+    ns = [100]
     dim = 1
     alphas = generate_range([0,3],7)
     ps     = [1]
