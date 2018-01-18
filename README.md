@@ -18,7 +18,8 @@ To analyze the data from each run, open up `dataanalysis.Rmd` in RStudio and
 run all of the code blocks (**TODO**: Generalize R code to work for all sim params).
 
 (**Also TODO:** Add a bash script which automates knitting the .Rmd document wo
-RStudio)
+RStudio) >>> More wise view: write an R script that outputs the figures and
+then run that (knitting Rmd from the CL is a pain...)
 
 ---
 
@@ -86,14 +87,14 @@ actually look like in practice
 *NOTES ON THIS (Jan 18th)*: We might want the maximum sized backwards step,
 and all of the sizes of backwards steps (maybe just max and sum)
 
-**Thoughts fromm Elliot (Jan 4):**
+**Thoughts from Elliot (Jan 4):**
 
 ~How many cores does the computer we're gonna run this on have?
 (ie is it worth parallelizing everything, down to the src trg stuff for each
  graph? Yes if a huge # of cores, no if the grain of alpha is enough to be a
  rate limiting step).
 
- --> AKA yes, if running on wesleyan HPC cluster~
+ --> AKA yes, if running on wesleyan HPC cluster
 
 *NOTES ON THIS (Jan 18th)*: Do runs for same n with different dimension,
 see if the distribution of path lengths is different/more broad/narrow.
@@ -109,3 +110,9 @@ TEST THIS!!!
  (IE which version of networkx is running) >>> 1.11
  https://stackoverflow.com/questions/5226311/installing-specific-package-versions-with-pip
  ^^^ this is how to  install specific version of pip python modules
+
+ ALSO, should also use a virtualenv to keep packages local to projects
+ https://www.quora.com/What-is-difference-between-pip-and-pip3
+
+ Also, should probably have stuff being logged as runs go on -->
+ allows for checking of runtimes as the cluster runs
