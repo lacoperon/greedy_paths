@@ -116,3 +116,5 @@ TEST THIS!!!
 
  Also, should probably have stuff being logged as runs go on -->
  allows for checking of runtimes as the cluster runs
+
+ Try Jupyter for visualizing output

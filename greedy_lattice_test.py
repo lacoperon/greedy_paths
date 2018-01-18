@@ -724,6 +724,8 @@ if __name__ == '__main__':
     random.seed(1)
     ns = [100]
     dim = 1
+    # generates range of values
+    # ie generate_range([0,3], 7) returns [0., 0.5, 1., 1.5, 2., 2.5, 3.]
     alphas = generate_range([0,3],7)
     ps     = [1]
     num_lookahead = 2 # IE number of 'links' we look out (IE 1 is greedy)
