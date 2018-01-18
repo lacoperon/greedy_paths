@@ -83,17 +83,29 @@ that there are backwards steps that are more backwards than others.
 again, do we want to collect the size of these steps? What does this
 actually look like in practice
 
+*NOTES ON THIS (Jan 18th)*: We might want the maximum sized backwards step,
+and all of the sizes of backwards steps (maybe just max and sum)
+
 **Thoughts fromm Elliot (Jan 4):**
 
-How many cores does the computer we're gonna run this on have?
+~How many cores does the computer we're gonna run this on have?
 (ie is it worth parallelizing everything, down to the src trg stuff for each
  graph? Yes if a huge # of cores, no if the grain of alpha is enough to be a
  rate limiting step).
 
- --> AKA yes, if running on wesleyan HPC cluster
+ --> AKA yes, if running on wesleyan HPC cluster~
 
- How to lower the std dev bars? Maybe I'm just tired but I can't think of how to
+*NOTES ON THIS (Jan 18th)*: Do runs for same n with different dimension,
+see if the distribution of path lengths is different/more broad/narrow.
+TEST THIS!!!
 
  ALSO, for the graphs, don't we want the bars to be boostrapped std dev of the
  actual run average length, as opposed to the std dev of the paths for one particular run?
  The former seems like it would converge for many iterations, whereas the latter doesn't.
+
+ **Notes on Meeting (Jan 18):**
+ Should scale pair_frac with N value.
+ Write down which version of everything we're using.
+ (IE which version of networkx is running) >>> 1.11
+ https://stackoverflow.com/questions/5226311/installing-specific-package-versions-with-pip
+ ^^^ this is how to  install specific version of pip python modules
