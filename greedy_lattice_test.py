@@ -487,6 +487,7 @@ def runSimulationMultithread(N=100, dim=1, num_graph_gen=25, pair_frac=0.01, pri
 
     dcd        = initialize_dcd(numMax) # initializes data collection dictionary
     graph_list = initialize_graphs(num_graph_gen, N, p, alpha, NUM_MAX_THREADS)
+    print "\n\n\n\n\n\n\nHELLO\n\n\n\n\n\n\n"
 
     '''
     The following defines a Thread class that should contain everything required
@@ -612,6 +613,7 @@ def initialize_graphs(num_graph_gen, N, p, alpha, NUM_MAX_THREADS=1):
           G = G.to_directed()
           G = add_shortcuts(G, p=self.p, alpha=self.alpha, verbose=self.verbose)
           graph_list[self.graph_num] = G
+          graph_gen_queue.task_done()
           print ("Exiting Thread for GraphGen-{}".format(self.graph_num))
 
 
@@ -643,7 +645,6 @@ def initialize_graphs(num_graph_gen, N, p, alpha, NUM_MAX_THREADS=1):
                 newThread = graphThread(i, input_tuple)
                 newThread.start()
                 i += 1
-                graph_gen_queue.task_done()
 
     graph_gen_queue.join()
     return graph_list
@@ -717,45 +718,45 @@ if __name__ == '__main__':
     files = glob.glob('./data_output/*.csv')
     for f in files:
         os.remove(f)
-
-    dim = 1
-    dcd_test = runSimulationMultithread(N=100, dim=1, num_graph_gen=25, pair_frac=0.01, printDict=False,
-                     num_tries=2, verbose=False, alpha=2., p=1, numMax=2,
-                     NUM_MAX_THREADS = 2)
-    write_dcd_to_csv(dcd_test, filename = "test.csv")
+    #
+    # dim = 1
+    # dcd_test = runSimulationMultithread(N=100, dim=1, num_graph_gen=25, pair_frac=0.01, printDict=False,
+    #                  num_tries=2, verbose=False, alpha=2., p=1, numMax=2,
+    #                  NUM_MAX_THREADS = 2)
+    # write_dcd_to_csv(dcd_test, filename = "test.csv")
 
     # Simulation Parameters
     # Please change them here! Otherwise the .csv files will be mislabelled...
 
-    # random.seed(1)
-    # ns = [100]
-    # dim = 1
-    # # generates range of values
-    # # ie generate_range([0,3], 7) returns [0., 0.5, 1., 1.5, 2., 2.5, 3.]
-    # alphas = generate_range([0,3],7)
-    # ps     = [1]
-    # num_lookahead = 2 # IE number of 'links' we look out (IE 1 is greedy)
-    # NUM_MAX_THREADS = 4 # SHOULD OPTIMISE THIS -->
-    #                 # https://stackoverflow.com/questions/481970/how-many-threads-is-too-many
-    #
-    # thread_init_queue = Queue()
-    #
-    # for N in ns:
-    #     for alpha in alphas:
-    #         for p in ps:
-    #             thread_init_queue.put([N, alpha, p])
-    #
-    # i = 1
-    # while (thread_init_queue.qsize() != 0):
-    #     num_threads = threading.active_count()
-    #     if num_threads < NUM_MAX_THREADS:
-    #         if thread_init_queue.qsize() != 0:
-    #             input_tuple = thread_init_queue.get()
-    #             newThread = simThread(i, input_tuple)
-    #             newThread.start()
-    #             i += 1
-    #             thread_init_queue.task_done()
-    #
-    # thread_init_queue.join()
+    random.seed(1)
+    ns = [100]
+    dim = 1
+    # generates range of values
+    # ie generate_range([0,3], 7) returns [0., 0.5, 1., 1.5, 2., 2.5, 3.]
+    alphas = generate_range([0,3],7)
+    ps     = [1]
+    num_lookahead = 2 # IE number of 'links' we look out (IE 1 is greedy)
+    NUM_MAX_THREADS = 4 # SHOULD OPTIMISE THIS -->
+                    # https://stackoverflow.com/questions/481970/how-many-threads-is-too-many
+
+    thread_init_queue = Queue()
+
+    for N in ns:
+        for alpha in alphas:
+            for p in ps:
+                thread_init_queue.put([N, alpha, p])
+
+    i = 1
+    while (thread_init_queue.qsize() != 0):
+        num_threads = threading.active_count()
+        if num_threads < NUM_MAX_THREADS:
+            if thread_init_queue.qsize() != 0:
+                input_tuple = thread_init_queue.get()
+                newThread = simThread(i, input_tuple)
+                newThread.start()
+                i += 1
+                thread_init_queue.task_done()
+
+    thread_init_queue.join()
 
     # SEE ALSO: https://docs.python.org/2/library/queue.html
