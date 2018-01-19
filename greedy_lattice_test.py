@@ -8,6 +8,7 @@ import glob
 import threading
 import time
 from Queue import *
+import copy
 
 # TODO: Try to code up a way to check if we're 'stuck' in local regions,
 #       although I don't think that's technically possible for unperturbed lattices
@@ -487,7 +488,6 @@ def runSimulationMultithread(N=100, dim=1, num_graph_gen=25, pair_frac=0.01, pri
 
     dcd        = initialize_dcd(numMax) # initializes data collection dictionary
     graph_list = initialize_graphs(num_graph_gen, N, p, alpha, NUM_MAX_THREADS)
-    print "\n\n\n\n\n\n\nHELLO\n\n\n\n\n\n\n"
 
     '''
     The following defines a Thread class that should contain everything required
@@ -695,6 +695,30 @@ class simThread (threading.Thread):
       self.N = input_tuple[0]
       self.alpha = input_tuple[1]
       self.p = input_tuple[2]
+   def run(self):
+      print ("Starting Thread-{} for {}".format(self.threadID, input_tuple))
+      dcd = runSimulation(N=self.N, dim=dim, num_graph_gen=1, pair_frac=0.01,
+                                printDict=False, num_tries=2, verbose=False,
+                                numMax = num_lookahead,
+                                alpha=self.alpha, p=self.p)
+      print ("Writing CSV for Thread-{}".format(self.threadID))
+      filename = "./data_output/sim_"
+      filename += "p_"+str(self.p)+"_alpha_"+str(self.alpha)
+      filename += "_N_"+str(self.N)+"_dim_" + str(dim) + ".csv"
+      write_dcd_to_csv(dcd, filename= filename)
+      print ("Exiting  Thread-{}".format(self.threadID))
+      thread_init_queue.task_done()
+
+'''
+Test simThread for the multithreaded runSimulation
+'''
+class simThreadTest (threading.Thread):
+   def __init__(self, threadID, input_tuple):
+      threading.Thread.__init__(self)
+      self.threadID = threadID
+      self.N = input_tuple[0]
+      self.alpha = input_tuple[1]
+      self.p = input_tuple[2]
       self.NUM_MAX_THREADS = 10
    def run(self):
       print ("Starting Thread-{} for {}".format(self.threadID, input_tuple))
@@ -705,9 +729,10 @@ class simThread (threading.Thread):
       print ("Writing CSV for Thread-{}".format(self.threadID))
       filename = "./data_output/sim_"
       filename += "p_"+str(self.p)+"_alpha_"+str(self.alpha)
-      filename += "_N_"+str(self.N)+"_dim_" + str(dim) + ".csv"
+      filename += "_N_"+str(self.N)+"_dim_" + str(dim) + "_test.csv"
       write_dcd_to_csv(dcd, filename= filename)
       print ("Exiting  Thread-{}".format(self.threadID))
+      thread_init_queue_test.task_done()
 
 '''
 ~~~ THE ACTUAL SIMULATION RUN CODE STARTS HERE ~~~
@@ -746,6 +771,8 @@ if __name__ == '__main__':
             for p in ps:
                 thread_init_queue.put([N, alpha, p])
 
+    thread_init_queue_test = Queue(thread_init_queue)
+
     i = 1
     while (thread_init_queue.qsize() != 0):
         num_threads = threading.active_count()
@@ -754,9 +781,12 @@ if __name__ == '__main__':
                 input_tuple = thread_init_queue.get()
                 newThread = simThread(i, input_tuple)
                 newThread.start()
+                testThread = simThreadTest(i, input_tuple)
+                testThread.start()
                 i += 1
-                thread_init_queue.task_done()
+
 
     thread_init_queue.join()
+    thread_init_queue_test.join()
 
     # SEE ALSO: https://docs.python.org/2/library/queue.html
