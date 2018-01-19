@@ -493,44 +493,44 @@ def runSimulationMultithread(N=100, dim=1, num_graph_gen=25, pair_frac=0.01, pri
     to run multithreaded pathfinding
     '''
     class pathfindThread (threading.Thread):
-       def __init__(self, input_tuple):
+       def __init__(self, threadID, input_tuple):
           threading.Thread.__init__(self)
           self.threadID = threadID
-          graph_num = input_tuple[0]
-          self.graph_num
-          self.G = graph_list[graph_num]
+          self.graph_num = input_tuple[0]
+          self.G = graph_list[self.graph_num]
           src_index = input_tuple[1]
-          self.src = self.G[src_index]
+          self.src = self.G.nodes()[src_index]
           trg_index = input_tuple[2]
-          self.trg = self.G[trg_index]
+          self.trg = self.G.nodes()[trg_index]
           self.numMax = input_tuple[3]
           self.numAttempts = input_tuple[4]
 
        def run(self):
           print ("Starting PathFind Thread-{}".format(self.threadID))
-          actualShortestPath = nx.shortest_path(G, source=self.src, target=self.trg)
+          actualShortestPath = nx.shortest_path(self.G, source=self.src, target=self.trg)
           results = []
           for attemptNum in range(self.numAttempts):
               for num in range(1,self.numMax+1):
-                  results.append([compute_not_so_greedy_route(G,src,trg,num=num), knum])
+                  results.append([compute_not_so_greedy_route(self.G,self.src,self.trg,num), num])
 
 
-          with lock:
-             dcd["graphNum"] += [self.graphNum+1]
-             dcd["shortcutstakenSP"] += [shortcuts_taken(actualShortestPath)]
-             dcd["lengthOfShortestPath"] += [len(actualShortestPath)-1]
-             dcd["backsteps_SP"] += [calc_num_backwards_steps(G,
-                                     actualShortestPath, trg)]
-             for entry in results:
-                  result, knum = entry
+              with lock:
+                 dcd["attemptNum"] += [attemptNum]
+                 dcd["graphNum"] += [self.graph_num+1]
+                 dcd["shortcutstakenSP"] += [shortcuts_taken(actualShortestPath)]
+                 dcd["lengthOfShortestPath"] += [len(actualShortestPath)-1]
+                 dcd["backsteps_SP"] += [calc_num_backwards_steps(self.G,
+                                         actualShortestPath, self.trg)]
+                 for entry in results:
+                      result, knum = entry
 
-                  # Data collection (Part II)
-                  dcd["lengthOfPathk="+str(knum)] += [result[0]]
-                  dcd["shortcutsTakenk="+str(knum)] += [
-                      shortcuts_taken(result[1])]
-                  dcd["backsteps_k="+str(knum)] += [
-                      calc_num_backwards_steps(G, actualShortestPath, trg)
-                  ]
+                      # Data collection (Part II)
+                      dcd["lengthOfPathk="+str(knum)] += [result[0]]
+                      dcd["shortcutsTakenk="+str(knum)] += [
+                          shortcuts_taken(result[1])]
+                      dcd["backsteps_k="+str(knum)] += [
+                          calc_num_backwards_steps(self.G, actualShortestPath, self.trg)
+                      ]
 
           print ("Exiting Thread for Pathfind-{}".format(self.threadID))
 
@@ -547,7 +547,7 @@ def runSimulationMultithread(N=100, dim=1, num_graph_gen=25, pair_frac=0.01, pri
             src_index = random.randint(0,actual_N-1)
             trg_index = random.randint(0,actual_N-1)
             for attemptNum in range(num_tries):
-                    pathfind_queue.put(graph_num, src_index, trg_index, numMax, numAttempts)
+                pathfind_queue.put([graph_num, src_index, trg_index, numMax, attemptNum])
 
     i = 1
     while (pathfind_queue.qsize() != 0):
@@ -561,12 +561,10 @@ def runSimulationMultithread(N=100, dim=1, num_graph_gen=25, pair_frac=0.01, pri
                 pathfind_queue.task_done()
 
     pathfind_queue.join()
-
-    if printDict:
-        for key in dcd:
-            print key
-            print len(dcd[key])
-
+    print "TOUCHED"
+    for key in dcd:
+        print key
+        print len(dcd[key])
     return dcd
 
 
@@ -602,9 +600,10 @@ def initialize_graphs(num_graph_gen, N, p, alpha, NUM_MAX_THREADS=1):
        def __init__(self, threadID, input_tuple):
           threading.Thread.__init__(self)
           self.threadID = threadID
-          self.N = input_tuple[0]
-          self.p = input_tuple[1]
-          self.alpha = input_tuple[2]
+          self.graph_num = input_tuple[0]
+          self.N = input_tuple[1]
+          self.p = input_tuple[2]
+          self.alpha = input_tuple[3]
           self.verbose = False
 
        def run(self):
@@ -612,8 +611,8 @@ def initialize_graphs(num_graph_gen, N, p, alpha, NUM_MAX_THREADS=1):
           G = nx.grid_graph(grid_input, periodic=False)
           G = G.to_directed()
           G = add_shortcuts(G, p=self.p, alpha=self.alpha, verbose=self.verbose)
-          graph_list[self.numGraph] = G
-          print ("Exiting Thread for GraphGen-{}".format(self.numGraph))
+          graph_list[self.graph_num] = G
+          print ("Exiting Thread for GraphGen-{}".format(self.graph_num))
 
 
     assert NUM_MAX_THREADS > 1 and isinstance(NUM_MAX_THREADS, int)
@@ -632,8 +631,8 @@ def initialize_graphs(num_graph_gen, N, p, alpha, NUM_MAX_THREADS=1):
     graph_list = [0] * num_graph_gen
     # Initializes Queue used to keep track of graph-generating threads
     graph_gen_queue = Queue()
-    for _ in range(num_graph_gen):
-        graph_gen_queue.put([N, p, alpha])
+    for graph_num in range(num_graph_gen):
+        graph_gen_queue.put([graph_num, N, p, alpha])
 
     i = 1
     while (graph_gen_queue.qsize() != 0):
@@ -646,7 +645,7 @@ def initialize_graphs(num_graph_gen, N, p, alpha, NUM_MAX_THREADS=1):
                 i += 1
                 graph_gen_queue.task_done()
 
-    thread_init_queue.join()
+    graph_gen_queue.join()
     return graph_list
 
 '''
@@ -695,12 +694,13 @@ class simThread (threading.Thread):
       self.N = input_tuple[0]
       self.alpha = input_tuple[1]
       self.p = input_tuple[2]
+      self.NUM_MAX_THREADS = 10
    def run(self):
       print ("Starting Thread-{} for {}".format(self.threadID, input_tuple))
-      dcd = runSimulation(N=self.N, dim=dim, num_graph_gen=1, pair_frac=0.01,
+      dcd = runSimulationMultithread(N=self.N, dim=dim, num_graph_gen=1, pair_frac=0.01,
                                 printDict=False, num_tries=2, verbose=False,
                                 numMax = num_lookahead,
-                                alpha=self.alpha, p=self.p)
+                                alpha=self.alpha, p=self.p, NUM_MAX_THREADS = self.NUM_MAX_THREADS)
       print ("Writing CSV for Thread-{}".format(self.threadID))
       filename = "./data_output/sim_"
       filename += "p_"+str(self.p)+"_alpha_"+str(self.alpha)
@@ -718,38 +718,44 @@ if __name__ == '__main__':
     for f in files:
         os.remove(f)
 
+    dim = 1
+    dcd_test = runSimulationMultithread(N=100, dim=1, num_graph_gen=25, pair_frac=0.01, printDict=False,
+                     num_tries=2, verbose=False, alpha=2., p=1, numMax=2,
+                     NUM_MAX_THREADS = 2)
+    write_dcd_to_csv(dcd_test, filename = "test.csv")
+
     # Simulation Parameters
     # Please change them here! Otherwise the .csv files will be mislabelled...
 
-    random.seed(1)
-    ns = [100]
-    dim = 1
-    # generates range of values
-    # ie generate_range([0,3], 7) returns [0., 0.5, 1., 1.5, 2., 2.5, 3.]
-    alphas = generate_range([0,3],7)
-    ps     = [1]
-    num_lookahead = 2 # IE number of 'links' we look out (IE 1 is greedy)
-    NUM_MAX_THREADS = 9 # SHOULD OPTIMISE THIS -->
-                    # https://stackoverflow.com/questions/481970/how-many-threads-is-too-many
-
-    thread_init_queue = Queue()
-
-    for N in ns:
-        for alpha in alphas:
-            for p in ps:
-                thread_init_queue.put([N, alpha, p])
-
-    i = 1
-    while (thread_init_queue.qsize() != 0):
-        num_threads = threading.active_count()
-        if num_threads < NUM_MAX_THREADS:
-            if thread_init_queue.qsize() != 0:
-                input_tuple = thread_init_queue.get()
-                newThread = simThread(i, input_tuple)
-                newThread.start()
-                i += 1
-                thread_init_queue.task_done()
-
-    thread_init_queue.join()
+    # random.seed(1)
+    # ns = [100]
+    # dim = 1
+    # # generates range of values
+    # # ie generate_range([0,3], 7) returns [0., 0.5, 1., 1.5, 2., 2.5, 3.]
+    # alphas = generate_range([0,3],7)
+    # ps     = [1]
+    # num_lookahead = 2 # IE number of 'links' we look out (IE 1 is greedy)
+    # NUM_MAX_THREADS = 4 # SHOULD OPTIMISE THIS -->
+    #                 # https://stackoverflow.com/questions/481970/how-many-threads-is-too-many
+    #
+    # thread_init_queue = Queue()
+    #
+    # for N in ns:
+    #     for alpha in alphas:
+    #         for p in ps:
+    #             thread_init_queue.put([N, alpha, p])
+    #
+    # i = 1
+    # while (thread_init_queue.qsize() != 0):
+    #     num_threads = threading.active_count()
+    #     if num_threads < NUM_MAX_THREADS:
+    #         if thread_init_queue.qsize() != 0:
+    #             input_tuple = thread_init_queue.get()
+    #             newThread = simThread(i, input_tuple)
+    #             newThread.start()
+    #             i += 1
+    #             thread_init_queue.task_done()
+    #
+    # thread_init_queue.join()
 
     # SEE ALSO: https://docs.python.org/2/library/queue.html
