@@ -697,7 +697,7 @@ class simThread (threading.Thread):
       self.p = input_tuple[2]
    def run(self):
       print ("Starting Thread-{} for {}".format(self.threadID, input_tuple))
-      dcd = runSimulation(N=self.N, dim=dim, num_graph_gen=1, pair_frac=0.01,
+      dcd = runSimulation(N=self.N, dim=dim, num_graph_gen=1, pair_frac=1,
                                 printDict=False, num_tries=2, verbose=False,
                                 numMax = num_lookahead,
                                 alpha=self.alpha, p=self.p)
@@ -722,7 +722,7 @@ class simThreadTest (threading.Thread):
       self.NUM_MAX_THREADS = 10
    def run(self):
       print ("Starting Thread-{} for {}".format(self.threadID, input_tuple))
-      dcd = runSimulationMultithread(N=self.N, dim=dim, num_graph_gen=1, pair_frac=0.01,
+      dcd = runSimulationMultithread(N=self.N, dim=dim, num_graph_gen=1, pair_frac=1,
                                 printDict=False, num_tries=2, verbose=False,
                                 numMax = num_lookahead,
                                 alpha=self.alpha, p=self.p, NUM_MAX_THREADS = self.NUM_MAX_THREADS)
@@ -773,6 +773,9 @@ if __name__ == '__main__':
 
     thread_init_queue_test = Queue(thread_init_queue)
 
+
+    # Use the same graphs for testing -- the graphs look similar, but we want
+    # to ensure that the graphs are the same for the same graphs
     i = 1
     while (thread_init_queue.qsize() != 0):
         num_threads = threading.active_count()
