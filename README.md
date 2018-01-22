@@ -132,3 +132,8 @@ TEST THIS!!!
 
  Try Jupyter for visualizing output. Add unit tests to make code much more
  tolerable to changes.
+
+ **Notes from Jan 22**:
+ Should readd requirements.txt to allow for faster testing using Travis that
+ doesn't take a couple of minutes to run (and instead should take a couple secs),
+ given that the chances of assertion testing the jupyter notebook are small
