@@ -7,3 +7,9 @@ install:
 # command to run tests
 script:
   - pytest ./test/*.py
+notifications:
+email:
+  recipients:
+    - ejwilliams@wesleyan.edu
+  on_success: never # default: change
+  on_failure: always # default: always
