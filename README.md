@@ -10,11 +10,19 @@ interest (this is not quite done yet).
 
 ## Installation / Setup
 
-First of all, the project runs Python 2.7, so ensure you have the right version
-installed.
+You can use the conda package to set up the relevant environment,
+with all dependencies already installed, for this project.
 
-To install the dependencies for the project, run `pip install -r requirements.txt`
-in the Command Line.
+First of all, if you don't have it already, you can install conda
+(ie through `sudo apt-get conda`, `brew install conda` or looking up a tutorial online).
+
+Then, run `conda env create` to create the `greedy` environment I've defined in
+`environment.yml` for this project.  
+
+Then, activate the environment using `source activate greedy`
+on macOS and Linux (`activate greedy` in Windows). The conda environment includes
+all packages necessary for the code proper, the unit testing, and the Jupyter
+Notebook.
 
 ## Workflow
 
@@ -23,15 +31,8 @@ To run a simulation, edit the simulation parameters (found at the end of
 your command line client of choice. The data outputted from each run is
 put into the `data_output` folder in csv format.
 
-To open the analysis of data from each run, open up `DataAnalysisJupyter.ipynb`,
-by typing in `jupyter notebook DataAnalysisJupyter.ipynb`.
-
-Note that the Jupyter Notebook is written in R, which is not available as a
-default language for Jupyter. In an ideal world, I would have setup the project
-to automatically install this for new users, or I would have a Docker environment
-that I could provide in the GitHub with Jupyter with R integration already installed.
-
-I didn't bother (because I'm, thus far, the only one actually running this code).
+To open the analysis of data from each run, open up the notebook with the data
+analysis code by typing in `jupyter notebook DataAnalysisJupyter.ipynb`.
 
 ---
 
