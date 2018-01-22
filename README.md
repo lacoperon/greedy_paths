@@ -8,18 +8,30 @@ The simulation code is contained in `greedy_lattice_test.py`, and `dataanalysis.
 parses the csv files produced from each run, and graphs various measures of
 interest (this is not quite done yet).
 
+## Installation / Setup
+
+First of all, the project runs Python 2.7, so ensure you have the right version
+installed.
+
+To install the dependencies for the project, run `pip install -r requirements.txt`
+in the Command Line.
+
 ## Workflow
 
 To run a simulation, edit the simulation parameters (found at the end of
 `greedy_lattice_test.py`) and type `python greedy_lattice_test.py` into
-your command line client of choice.
+your command line client of choice. The data outputted from each run is
+put into the `data_output` folder in csv format.
 
-To analyze the data from each run, open up `dataanalysis.Rmd` in RStudio and
-run all of the code blocks (**TODO**: Generalize R code to work for all sim params).
+To open the analysis of data from each run, open up `DataAnalysisJupyter.ipynb`,
+by typing in `jupyter notebook DataAnalysisJupyter.ipynb`.
 
-(**Also TODO:** Add a bash script which automates knitting the .Rmd document wo
-RStudio) >>> More wise view: write an R script that outputs the figures and
-then run that (knitting Rmd from the CL is a pain...)
+Note that the Jupyter Notebook is written in R, which is not available as a
+default language for Jupyter. In an ideal world, I would have setup the project
+to automatically install this for new users, or I would have a Docker environment
+that I could provide in the GitHub with Jupyter with R integration already installed.
+
+I didn't bother (because I'm, thus far, the only one actually running this code).
 
 ---
 
