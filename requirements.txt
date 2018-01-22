@@ -1,1 +1,2 @@
+pytest
 networkx==1.11
