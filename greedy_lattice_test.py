@@ -743,12 +743,6 @@ if __name__ == '__main__':
     files = glob.glob('./data_output/*.csv')
     for f in files:
         os.remove(f)
-    #
-    # dim = 1
-    # dcd_test = runSimulationMultithread(N=100, dim=1, num_graph_gen=25, pair_frac=0.01, printDict=False,
-    #                  num_tries=2, verbose=False, alpha=2., p=1, numMax=2,
-    #                  NUM_MAX_THREADS = 2)
-    # write_dcd_to_csv(dcd_test, filename = "test.csv")
 
     # Simulation Parameters
     # Please change them here! Otherwise the .csv files will be mislabelled...
