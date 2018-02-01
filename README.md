@@ -1,5 +1,7 @@
 # Greedy Lattice Test Code
 
+[![Build Status](https://travis-ci.com/lacoperon/greedy_paths.svg?token=Wy9uNtocawbdbMCz8QoS&branch=master)](https://travis-ci.com/lacoperon/greedy_paths)
+
 The goal of this collection of code snippets is to reproduce the results in
 Kleinberg's 'Navigation in a Small World' paper, generalized to more varieties
 of network perturbations, as well as to higher-dimensional lattices.
