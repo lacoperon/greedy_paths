@@ -32,12 +32,6 @@ def lattice_dist(node1, node2):
     else:
         return sum((abs(b-a) for a,b in zip(node1,node2)))
 
-# Test cases
-assert lattice_dist(1,2) is 1
-assert lattice_dist(13,13) is 0
-assert lattice_dist((1,2,3),(4,5,6)) is 9
-assert lattice_dist((1,2,3),(1,1,1)) is 3
-assert lattice_dist((1,2,3,4,5),(1,2,3,4,5)) is 0
 
 '''
 Function to see if two nodes are, *de novo*, adjacent to each other in a lattice
@@ -68,11 +62,6 @@ def are_denovo_adj(node1, node2):
                     hasBeenDifferent = True
         return True
 
-assert are_denovo_adj(1,2) is True
-assert are_denovo_adj(1,1) is False
-assert are_denovo_adj(13,15) is False
-assert are_denovo_adj((1,1),(1,2))
-
 '''
 Function that counts the number of 'shortcuts' taken in a given path from src
 to trg.
@@ -85,16 +74,6 @@ def shortcuts_taken(path):
     step_indices = range(len(path)-1)
     shortcut_vector = [not are_denovo_adj(path[i],path[i+1]) for i in step_indices]
     return sum(shortcut_vector)
-
-path1 = [1,2,3,4,7,8,9]
-assert shortcuts_taken(path1) is 1
-path2 = [1,2,4,5,7,8,10,11]
-assert shortcuts_taken(path2) is 3
-path3 = [(1,1),(1,2),(2,2),(17,3),(17,4)]
-assert shortcuts_taken(path3) is 1
-path4 = []
-assert shortcuts_taken(path4) is 0
-
 
 '''
 The compute_greedy_route function computes the 'greedy' route between two nodes,
@@ -375,7 +354,7 @@ def runSimulation(N=100, dim=1, num_graph_gen=25, pair_frac=0.01, printDict=Fals
     assert isinstance(N,   int)
     assert actual_N <= N
 
-    print "Running simulation on " + str(grid_input) + " lattice"
+    # print "Running simulation on " + str(grid_input) + " lattice"
 
     if actual_N != N:
         print("********\n The "+str(dim)+" root of N is not an int\n********")
@@ -471,7 +450,7 @@ def runSimulation(N=100, dim=1, num_graph_gen=25, pair_frac=0.01, printDict=Fals
 # TODO: test this (should be written correctly maybe)
 def runSimulationMultithread(N=100, dim=1, num_graph_gen=25, pair_frac=0.01, printDict=False,
                  num_tries=2, verbose=False, alpha=2., p=1, numMax=2,
-                 NUM_MAX_THREADS = 1):
+                 NUM_MAX_THREADS = 1, graphInput=False):
 
     lock = threading.RLock() # lock for a given simulation's data file
 
@@ -481,13 +460,19 @@ def runSimulationMultithread(N=100, dim=1, num_graph_gen=25, pair_frac=0.01, pri
     assert isinstance(N,   int)
     assert actual_N <= N
 
-    print "Running simulation on " + str(grid_input) + " lattice"
+    # print "Running simulation on " + str(grid_input) + " lattice"
 
     if actual_N != N:
         print("********\n The "+str(dim)+" root of N is not an int\n********")
 
     dcd        = initialize_dcd(numMax) # initializes data collection dictionary
-    graph_list = initialize_graphs(num_graph_gen, N, p, alpha, NUM_MAX_THREADS)
+
+    # Added ability to feed simulation graphs
+    # (TODO: Implement this to test equality of methods)
+    if graphInput:
+        graph_list = graphInput
+    else:
+        graph_list = initialize_graphs(num_graph_gen, N, p, alpha, NUM_MAX_THREADS)
 
     '''
     The following defines a Thread class that should contain everything required
@@ -507,7 +492,7 @@ def runSimulationMultithread(N=100, dim=1, num_graph_gen=25, pair_frac=0.01, pri
           self.numAttempts = input_tuple[4]
 
        def run(self):
-          print ("Starting PathFind Thread-{}".format(self.threadID))
+          # print ("Starting PathFind Thread-{}".format(self.threadID))
           actualShortestPath = nx.shortest_path(self.G, source=self.src, target=self.trg)
           results = []
           for attemptNum in range(self.numAttempts):
@@ -533,7 +518,7 @@ def runSimulationMultithread(N=100, dim=1, num_graph_gen=25, pair_frac=0.01, pri
                           calc_num_backwards_steps(self.G, actualShortestPath, self.trg)
                       ]
 
-          print ("Exiting Thread for Pathfind-{}".format(self.threadID))
+          # print ("Exiting Thread for Pathfind-{}".format(self.threadID))
 
     pathfind_queue = Queue()
 
@@ -547,7 +532,9 @@ def runSimulationMultithread(N=100, dim=1, num_graph_gen=25, pair_frac=0.01, pri
             # randomly selects src, trg from G.nodes() WITH REPLACEMENT
             src_index = random.randint(0,actual_N-1)
             trg_index = random.randint(0,actual_N-1)
+            # print("Num Tries is {}".format(num_tries))
             for attemptNum in range(num_tries):
+                # print("Attempt {}".format(attemptNum    ))
                 pathfind_queue.put([graph_num, src_index, trg_index, numMax, attemptNum])
 
     i = 1
@@ -562,10 +549,10 @@ def runSimulationMultithread(N=100, dim=1, num_graph_gen=25, pair_frac=0.01, pri
                 pathfind_queue.task_done()
 
     pathfind_queue.join()
-    print "TOUCHED"
-    for key in dcd:
-        print key
-        print len(dcd[key])
+    if verbose:
+        for key in dcd:
+            print key
+            print len(dcd[key])
     return dcd
 
 
@@ -608,13 +595,13 @@ def initialize_graphs(num_graph_gen, N, p, alpha, NUM_MAX_THREADS=1):
           self.verbose = False
 
        def run(self):
-          print ("Starting Graph Gen Thread-{}".format(input_tuple))
+          # print ("Starting Graph Gen Thread-{}".format(input_tuple))
           G = nx.grid_graph(grid_input, periodic=False)
           G = G.to_directed()
           G = add_shortcuts(G, p=self.p, alpha=self.alpha, verbose=self.verbose)
           graph_list[self.graph_num] = G
           graph_gen_queue.task_done()
-          print ("Exiting Thread for GraphGen-{}".format(self.graph_num))
+          # print ("Exiting Thread for GraphGen-{}".format(self.graph_num))
 
 
     assert NUM_MAX_THREADS > 1 and isinstance(NUM_MAX_THREADS, int)
@@ -623,9 +610,9 @@ def initialize_graphs(num_graph_gen, N, p, alpha, NUM_MAX_THREADS=1):
     assert isinstance(dim, int) and dim > 0
     assert isinstance(N,   int) and actual_N <= N
 
-    print "Generating {} graphs for {} lattice, alpha : {}, p: {}".format(
-        num_graph_gen, N, alpha, p
-        )
+    # print "Generating {} graphs for {} lattice, alpha : {}, p: {}".format(
+    #     num_graph_gen, N, alpha, p
+    #     )
     if actual_N != N:
         print("********\n The "+str(dim)+" root of N is not an int\n********")
 
@@ -696,17 +683,17 @@ class simThread (threading.Thread):
       self.alpha = input_tuple[1]
       self.p = input_tuple[2]
    def run(self):
-      print ("Starting Thread-{} for {}".format(self.threadID, input_tuple))
+      # print ("Starting Thread-{} for {}".format(self.threadID, input_tuple))
       dcd = runSimulation(N=self.N, dim=dim, num_graph_gen=1, pair_frac=1,
-                                printDict=False, num_tries=2, verbose=False,
+                                printDict=False, num_tries=1, verbose=False,
                                 numMax = num_lookahead,
                                 alpha=self.alpha, p=self.p)
-      print ("Writing CSV for Thread-{}".format(self.threadID))
+      # print ("Writing CSV for Thread-{}".format(self.threadID))
       filename = "./data_output/sim_"
       filename += "p_"+str(self.p)+"_alpha_"+str(self.alpha)
       filename += "_N_"+str(self.N)+"_dim_" + str(dim) + ".csv"
       write_dcd_to_csv(dcd, filename= filename)
-      print ("Exiting  Thread-{}".format(self.threadID))
+      # print ("Exiting  Thread-{}".format(self.threadID))
       thread_init_queue.task_done()
 
 '''
@@ -721,17 +708,17 @@ class simThreadTest (threading.Thread):
       self.p = input_tuple[2]
       self.NUM_MAX_THREADS = 10
    def run(self):
-      print ("Starting Thread-{} for {}".format(self.threadID, input_tuple))
+      # print ("Starting Thread-{} for {}".format(self.threadID, input_tuple))
       dcd = runSimulationMultithread(N=self.N, dim=dim, num_graph_gen=1, pair_frac=1,
                                 printDict=False, num_tries=2, verbose=False,
                                 numMax = num_lookahead,
                                 alpha=self.alpha, p=self.p, NUM_MAX_THREADS = self.NUM_MAX_THREADS)
-      print ("Writing CSV for Thread-{}".format(self.threadID))
+      # print ("Writing CSV for Thread-{}".format(self.threadID))
       filename = "./data_output/sim_"
       filename += "p_"+str(self.p)+"_alpha_"+str(self.alpha)
       filename += "_N_"+str(self.N)+"_dim_" + str(dim) + "_test.csv"
       write_dcd_to_csv(dcd, filename= filename)
-      print ("Exiting  Thread-{}".format(self.threadID))
+      # print ("Exiting  Thread-{}".format(self.threadID))
       thread_init_queue_test.task_done()
 
 '''
@@ -757,16 +744,19 @@ if __name__ == '__main__':
     num_lookahead = 2 # IE number of 'links' we look out (IE 1 is greedy)
     NUM_MAX_THREADS = 4 # SHOULD OPTIMISE THIS -->
                     # https://stackoverflow.com/questions/481970/how-many-threads-is-too-many
-
+    num_graph_gen = 1
     thread_init_queue = Queue()
+    thread_init_queue_test = Queue()
+    graph_list = []
 
     for N in ns:
         for alpha in alphas:
             for p in ps:
                 thread_init_queue.put([N, alpha, p])
+                thread_init_queue_test.put([N, alpha, p])
+                graph_list.append([num_graph_gen, N, p, alpha, 5])
 
-    thread_init_queue_test = Queue(thread_init_queue)
-
+    print("Number of graphs is {}".format(len(graph_list))) 
 
     # Use the same graphs for testing -- the graphs look similar, but we want
     # to ensure that the graphs are the same for the same graphs
