@@ -10,17 +10,12 @@ import time
 from Queue import *
 import copy
 
-# TODO: Try to code up a way to check if we're 'stuck' in local regions,
-#       although I don't think that's technically possible for unperturbed lattices
-#       (it is, however, for perturbed lattices where edges are removed)
-#       -- it won't be for lattices where edges are added, because it's not for
-#       regular lattices
-
 # TODO: Could probably make this faster using dynamic programming on each graph,
 #       Saving each node's distance to trg, and maybe also each node's neighbors
 
-# TODO: Parallelization didn't go so well with Pool.map, but there should be an
-#       easy way to get that done...
+# TODO: Add more coherent print logic, put it in a log file
+
+
 '''
 Input:  Two nodes (where nodes are represented by tuples of dimension length)
 Output: The Manhattan distance between the two nodes
@@ -572,13 +567,17 @@ def initialize_dcd(numMax):
         dcd["lengthOfPathk="+str(num)] = []
         dcd["backsteps_k="+str(num)] = []
         dcd["shortcutsTakenk="+str(num)] = []
+        # TODO: Add the Furthest we get from the trg in the path (relative to src)
+        # IE 5->9 that touches 1 should yield 4
+        # TODO: Add the max and sum of backsteps
+
 
     return dcd
 
 '''
 Helper function for multithreaded initialization of all graphs used in a sim
 '''
-def initialize_graphs(num_graph_gen, N, p, alpha, NUM_MAX_THREADS=1):
+def initialize_graphs(num_graph_gen, N, p=1, alpha, NUM_MAX_THREADS=1):
     '''
     The following defines a Thread class that should contain everything required
     to run multithreaded graph generation, in so doing allowing for multicore
@@ -756,7 +755,7 @@ if __name__ == '__main__':
                 thread_init_queue_test.put([N, alpha, p])
                 graph_list.append([num_graph_gen, N, p, alpha, 5])
 
-    print("Number of graphs is {}".format(len(graph_list))) 
+    print("Number of graphs is {}".format(len(graph_list)))
 
     # Use the same graphs for testing -- the graphs look similar, but we want
     # to ensure that the graphs are the same for the same graphs
