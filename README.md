@@ -70,24 +70,6 @@ as compared to k=1) -- vs. "bug" effect, which is possiblity random choices
 make 'large' (or any) differences in the shortest path length computed
 (bug effect is only for d>1)
 
-Connection w how good is an embedding
-
-try to count of backwards steps in a path, for each path
-also:   
-
-* steps for k = 1
-* steps for k = 2
-* ...
-* backwards steps for k > 1 (separated by case)
-* shortest path length for the src, trg
-* shortcuts taken (k > 1)
-* shortcuts taken (k = 1)
-* shortcuts taken in shortest path
-
-instead of sampling pairs, just sample src maybe and use all such
-targets maybe
-
-curve w steps, alphas, w avg + std
 
 **Thoughts from Elliot (Dec 23rd):**
 
@@ -102,14 +84,6 @@ actually look like in practice
 *NOTES ON THIS (Jan 18th)*: We might want the maximum sized backwards step,
 and all of the sizes of backwards steps (maybe just max and sum)
 
-**Thoughts from Elliot (Jan 4):**
-
-~How many cores does the computer we're gonna run this on have?
-(ie is it worth parallelizing everything, down to the src trg stuff for each
- graph? Yes if a huge # of cores, no if the grain of alpha is enough to be a
- rate limiting step).
-
- --> AKA yes, if running on wesleyan HPC cluster
 
 *NOTES ON THIS (Jan 18th)*: Do runs for same n with different dimension,
 see if the distribution of path lengths is different/more broad/narrow.
@@ -121,22 +95,15 @@ TEST THIS!!!
 
  **Notes on Meeting (Jan 18):**
  Should scale pair_frac with N value.
- Write down which version of everything we're using.
- (IE which version of networkx is running) >>> 1.11
- https://stackoverflow.com/questions/5226311/installing-specific-package-versions-with-pip
- ^^^ this is how to  install specific version of pip python modules
-
- ALSO, should also use a virtualenv to keep packages local to projects
- https://www.quora.com/What-is-difference-between-pip-and-pip3
 
  Also, should probably have stuff being logged as runs go on -->
  allows for checking of runtimes as the cluster runs
 
- Try Jupyter for visualizing output. Add unit tests to make code much more
- tolerable to changes.
 
- **Notes from Jan 22**:
- Should readd requirements.txt to allow for faster testing using Travis that
- doesn't take a couple of minutes to run (and instead should take a couple secs),
- given that the chances of assertion testing the jupyter notebook are small
---DONE
+**Notes from Feb 2nd**:
+Should add flag for doing shortest paths -- probably don't want to for large N
+Should also add histogram collection code -- easy way of reducing data produced
+(also collect averages -- will otherwise be biased by data degradation by histogram)
+
+Also update writing code so that it writes every run (graph done)
+Also time code running for various functions -- helpful to see bottlenecks
