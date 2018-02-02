@@ -1,4 +1,4 @@
-import networkx as nx
+oimport networkx as nx
 import random
 import math
 import operator
@@ -14,7 +14,6 @@ import copy
 #       Saving each node's distance to trg, and maybe also each node's neighbors
 
 # TODO: Add more coherent print logic, put it in a log file
-
 
 '''
 Input:  Two nodes (where nodes are represented by tuples of dimension length)
@@ -487,13 +486,13 @@ def runSimulationMultithread(N=100, dim=1, num_graph_gen=25, pair_frac=0.01, pri
           self.numAttempts = input_tuple[4]
 
        def run(self):
-          # print ("Starting PathFind Thread-{}".format(self.threadID))
+           if verbose:
+               print ("Starting PathFind Thread-{}".format(self.threadID))
           actualShortestPath = nx.shortest_path(self.G, source=self.src, target=self.trg)
           results = []
           for attemptNum in range(self.numAttempts):
               for num in range(1,self.numMax+1):
                   results.append([compute_not_so_greedy_route(self.G,self.src,self.trg,num), num])
-
 
               with lock:
                  dcd["attemptNum"] += [attemptNum]
@@ -504,32 +503,27 @@ def runSimulationMultithread(N=100, dim=1, num_graph_gen=25, pair_frac=0.01, pri
                                          actualShortestPath, self.trg)]
                  for entry in results:
                       result, knum = entry
-
-                      # Data collection (Part II)
                       dcd["lengthOfPathk="+str(knum)] += [result[0]]
                       dcd["shortcutsTakenk="+str(knum)] += [
                           shortcuts_taken(result[1])]
                       dcd["backsteps_k="+str(knum)] += [
                           calc_num_backwards_steps(self.G, actualShortestPath, self.trg)
                       ]
-
-          # print ("Exiting Thread for Pathfind-{}".format(self.threadID))
+          if verbose:
+              print ("Exiting Thread for Pathfind-{}".format(self.threadID))
 
     pathfind_queue = Queue()
 
-    # Running sim for a number of graphs
     for graph_num in range(num_graph_gen):
         if verbose:
             print ("Running with "
                     + str(int(pair_frac * (actual_N * (actual_N - 1))))
                     + " pairs of nodes")
         for j in range( int(pair_frac * (actual_N * (actual_N - 1)))):
-            # randomly selects src, trg from G.nodes() WITH REPLACEMENT
+            # randomly selects src, trg from G.nodes() with replacement
             src_index = random.randint(0,actual_N-1)
             trg_index = random.randint(0,actual_N-1)
-            # print("Num Tries is {}".format(num_tries))
             for attemptNum in range(num_tries):
-                # print("Attempt {}".format(attemptNum    ))
                 pathfind_queue.put([graph_num, src_index, trg_index, numMax, attemptNum])
 
     i = 1
@@ -555,9 +549,7 @@ def runSimulationMultithread(N=100, dim=1, num_graph_gen=25, pair_frac=0.01, pri
 Helper function to initialize a data-collecting dictionary
 '''
 def initialize_dcd(numMax):
-    dcd = {} #Dict collecting results
-
-    #initializing dict columns (maybe this should be its own function)
+    dcd = {}
     dcd["shortcutstakenSP"] = []
     dcd["lengthOfShortestPath"] = []
     dcd["backsteps_SP"] = []
@@ -570,8 +562,6 @@ def initialize_dcd(numMax):
         # TODO: Add the Furthest we get from the trg in the path (relative to src)
         # IE 5->9 that touches 1 should yield 4
         # TODO: Add the max and sum of backsteps
-
-
     return dcd
 
 '''
@@ -725,14 +715,12 @@ class simThreadTest (threading.Thread):
 '''
 if __name__ == '__main__':
 
-    # Removes leftover files from previous runs
+    # Removes prior run files
     files = glob.glob('./data_output/*.csv')
     for f in files:
         os.remove(f)
 
     # Simulation Parameters
-    # Please change them here! Otherwise the .csv files will be mislabelled...
-
     random.seed(1)
     ns = [100]
     dim = 1
@@ -774,5 +762,3 @@ if __name__ == '__main__':
 
     thread_init_queue.join()
     thread_init_queue_test.join()
-
-    # SEE ALSO: https://docs.python.org/2/library/queue.html
