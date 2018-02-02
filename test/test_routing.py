@@ -32,18 +32,6 @@ class TestHelperFunctions(object):
         assert gr.shortcuts_taken(path4) is 0
 
     def test_num_backsteps(self):
-        '''
-        Function takes in a graph object, and a node list corresponding to a path
-        from a src node to a trg node. It then calculates the number of 'backwards'
-        steps taken in the path. I define a 'backwards' step as a step which increases
-        the Manhattan distance between the current node and the target.
-
-        Input:  G : networkx graph object,
-                path : node list
-
-        Output:
-                num_backwards_steps : int (the number of backwards steps taken)
-        '''
         G1 = nx.grid_graph([10], periodic=False)
         path1 = [1,2,3,4,7,8,9]
         assert gr.calc_num_backwards_steps(G1, path1, path1[-1]) is 0
