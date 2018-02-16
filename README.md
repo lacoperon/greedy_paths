@@ -61,10 +61,6 @@ and plot (Kleinberg has p=1, so try with this first)
 
 **Notes from Meeting on 21st December, 2017**
 
-Count to see the number of weird cases -- where the num=k case leads to a
-shorter path when compared to the num=k+1 case, and insodoing see how the
-graph will potentially change.
-
 Two types of effects -- true effect (IE k=2 is slower, deterministically,
 as compared to k=1) -- vs. "bug" effect, which is possiblity random choices
 make 'large' (or any) differences in the shortest path length computed
@@ -86,8 +82,7 @@ and all of the sizes of backwards steps (maybe just max and sum)
 
 
 *NOTES ON THIS (Jan 18th)*: Do runs for same n with different dimension,
-see if the distribution of path lengths is different/more broad/narrow.
-TEST THIS!!!
+see if the distribution of path lengths is different/more broad/narrow.d
 
  ALSO, for the graphs, don't we want the bars to be boostrapped std dev of the
  actual run average length, as opposed to the std dev of the paths for one particular run?
@@ -107,3 +102,10 @@ Should also add histogram collection code -- easy way of reducing data produced
 
 Also update writing code so that it writes every run (graph done)
 Also time code running for various functions -- helpful to see bottlenecks
+
+Seeing if increasing dimensionality of run decreases Std Dev of Paths Generated
+
+Also, think about picking a whole bunch of src for given trg,
+and caching routes from certain nodes that are part of previously
+computed paths. Could save time, at cost of some randomness.
+(refactor src, trg picking function, to help with this)
