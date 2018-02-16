@@ -571,8 +571,8 @@ if __name__ == '__main__':
 
     # Simulation Parameters
     random.seed(1)
-    ns = [1000]
-    dim = 1
+    ns = [10000]
+    dim = 2
     # generates range of values
     # ie generate_range([0,3], 7) returns [0., 0.5, 1., 1.5, 2., 2.5, 3.]
     alphas = generate_range([0,3],10)
@@ -581,14 +581,12 @@ if __name__ == '__main__':
     NUM_MAX_THREADS = 8 # SHOULD OPTIMISE THIS -->
                     # https://stackoverflow.com/questions/481970/how-many-threads-is-too-many
     num_graph_gen = 1
-    # thread_init_queue = Queue()
     thread_init_queue_test = Queue()
     graph_list = []
 
     for N in ns:
         for alpha in alphas:
             for p in ps:
-                # thread_init_queue.put([N, alpha, p])
                 thread_init_queue_test.put([N, alpha, p])
                 graph_list.append([num_graph_gen, N, p, alpha, 5])
 
