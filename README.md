@@ -1,6 +1,6 @@
 # Greedy Lattice Test Code
 
-[![Build Status](https://travis-ci.com/lacoperon/greedy_paths.svg?token=Wy9uNtocawbdbMCz8QoS&branch=master)](https://travis-ci.com/lacoperon/greedy_paths)
+[![Build Status](https://travis-ci.org/lacoperon/greedy_paths.svg?branch=master)
 
 The goal of this collection of code snippets is to reproduce the results in
 Kleinberg's 'Navigation in a Small World' paper, generalized to more varieties
