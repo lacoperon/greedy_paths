@@ -7,6 +7,7 @@ import os
 import glob
 import threading
 import time
+import sys
 from Queue import *
 import copy
 
@@ -425,9 +426,6 @@ Helper function to initialize a data-collecting dictionary
 '''
 def initialize_dcd(numMax):
     dcd = {}
-    # dcd["shortcutstakenSP"] = []
-    # dcd["lengthOfShortestPath"] = []
-    # dcd["backsteps_SP"] = []
     dcd["graphNum"] = []
     dcd["attemptNum"] = []
     for num in range(1,numMax+1):
@@ -544,10 +542,10 @@ class simThreadTest (threading.Thread):
       self.N = input_tuple[0]
       self.alpha = input_tuple[1]
       self.p = input_tuple[2]
-      self.NUM_MAX_THREADS = 10
+      self.NUM_MAX_THREADS = 16
    def run(self):
       print ("Starting Thread-{} for {}".format(self.threadID, input_tuple))
-      dcd = runSimulationMultithread(N=self.N, dim=dim, num_graph_gen=1, pair_frac=0.0001,
+      dcd = runSimulationMultithread(N=self.N, dim=dim, num_graph_gen=1, pair_frac=0.01/self.N,
                                 printDict=False, num_tries=2, verbose=False,
                                 numMax = num_lookahead,
                                 alpha=self.alpha, p=self.p, NUM_MAX_THREADS = self.NUM_MAX_THREADS)
@@ -555,7 +553,7 @@ class simThreadTest (threading.Thread):
       filename = "./data_output/sim_"
       filename += "p_"+str(self.p)+"_alpha_"+str(self.alpha)
       filename += "_N_"+str(self.N)+"_dim_" + str(dim) + "_test.csv"
-      write_dcd_to_csv(dcd, filename= filename)
+      # write_dcd_to_csv(dcd, filename= filename) # commented out for testing
       print ("Exiting  Thread-{}".format(self.threadID))
       thread_init_queue_test.task_done()
 
@@ -564,6 +562,8 @@ class simThreadTest (threading.Thread):
 '''
 if __name__ == '__main__':
 
+    start = time.time()
+
     # Removes prior run files
     files = glob.glob('./data_output/*.csv')
     for f in files:
@@ -571,15 +571,16 @@ if __name__ == '__main__':
 
     # Simulation Parameters
     random.seed(1)
-    ns = [10000]
-    dim = 2
+    n = int(sys.argv[1])
+    ns = [n]
+    dim = 3
     # generates range of values
     # ie generate_range([0,3], 7) returns [0., 0.5, 1., 1.5, 2., 2.5, 3.]
     alphas = generate_range([0,3],10)
     ps     = [1]
     num_lookahead = 2 # IE number of 'links' we look out (IE 1 is greedy)
-    NUM_MAX_THREADS = 8 # SHOULD OPTIMISE THIS -->
-                    # https://stackoverflow.com/questions/481970/how-many-threads-is-too-many
+    NUM_MAX_THREADS = 16 # SHOULD OPTIMISE THIS -->
+# https://stackoverflow.com/questions/481970/how-many-threads-is-too-many
     num_graph_gen = 1
     thread_init_queue_test = Queue()
     graph_list = []
@@ -587,6 +588,7 @@ if __name__ == '__main__':
     for N in ns:
         for alpha in alphas:
             for p in ps:
+                # thread_init_queue.put([N, alpha, p])
                 thread_init_queue_test.put([N, alpha, p])
                 graph_list.append([num_graph_gen, N, p, alpha, 5])
 
@@ -605,3 +607,8 @@ if __name__ == '__main__':
                 i += 1
 
     thread_init_queue_test.join()
+
+    end = time.time()
+    f = open("timing_d3.csv", "a")
+    f.write("{0},{1}\n".format(n, end-start))
+    f.close()
