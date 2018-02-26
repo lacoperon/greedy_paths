@@ -108,3 +108,23 @@ class TestGraphGeneration(object):
         for node in G.nodes():
             node_edges = G.edges(nbunch=[node])
             assert 3 <= len(node_edges) and 7 >= len(node_edges)
+
+    # Tests routing logic for dim=1
+    def test_routing(self):
+        grid_input = [10]
+        G1 = nx.grid_graph(grid_input, periodic=False)
+        G1 = G1.to_directed()
+        G1.add_edges_from([[2, 9]])
+        assert len(gr.compute_not_so_greedy_route(G1, 3, 9, num=1)[1]) is 7
+        assert len(gr.compute_not_so_greedy_route(G1, 3, 9, num=2)[1]) is 3
+
+    # Tests routing logic for dim=2
+    def test_routing2(self):
+        grid_input = [4,4]
+        G2 = nx.grid_graph(grid_input, periodic=False)
+        G2 = G2.to_directed()
+        print(G2.nodes())
+        G2.add_edges_from([[(0,0), (3,3)]])
+        assert len(gr.compute_not_so_greedy_route(G2, (1,1), (3,3), num=1)[1]) is 5
+        assert len(gr.compute_not_so_greedy_route(G2, (1,1), (3,3), num=2)[1]) is 5
+        assert len(gr.compute_not_so_greedy_route(G2, (1,1), (3,3), num=3)[1]) is 4
