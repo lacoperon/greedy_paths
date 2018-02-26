@@ -1,0 +1,30 @@
+Not-so-greedy routing in complex networks:
+
+
+We explore different routing strategies in complex networks based on local information. Specifically, we construct a network according to Kleinberg's small-world model and study a family of routing strategies parameterized by k, the number of look-ahead hops. For k=1, a traveler moves from a given node u to a neighbor of u that minimizes the Manhattan distance to the target (just like in Kleinberg's paper). For k>1, the traveler is allowed to look further into the network. For example, for k=2, the traveler can look at u's neighbors neighbors in order to decide which way to go (note, however, that the traveler is still only taking one step a time). And so on for k=3,4,..,N. Note that for k=N, the traveler is allowed to look at the entire network thus traveling along shortest paths.
+
+
+Recall that in Kleinberg's small-world model, we have a regular lattice of dimension d with N=L^d nodes, each connected with its 2*d (right?) nearest neighbors. In addition, M shortcuts are added randomly where the probability of a shortcut between nodes i and j is proportional to r_{ij}^-alpha where r_{ij} is the Manhattan (lattice) distance between i and j, and alpha is a variable exponent.
+
+We expect that our less greedy routing scheme will allow more freedom in choosing the shortcuts. In particular, we expect the optimal alpha for which optimal transport is achieved, to be smaller than the lattice dimension.
+
+Inversely, given a graph G and a suggested embedding D, we can assess how good is this embedding by testing the performance of a greedy algorithm using D.
+
+Then, I wonder what does it mean if an embedding is doing very poorly for some k, and then suddenly improves dramatically at a critical k, k*.
+
+In particular, if I take a graph that I know is 3 dimensional (for example). How would a 2-dimensional embedding perform with k=2?
+
+We should plot for a small alpha, even alpha=0, the average travel time versus k.
+
+
+
+Experiment 1: take 1 dimensional graph
+
+Test case with line graph, see that (fed a certain input) we're going in the right
+direction (for a long line graph with a big shortcut requiring going backwards
+in certain test cases)
+k=1 go one way, k=2 go another, k=3 etc.
+
+time complexity of each routing strategy
+
+'Sweet spot' between length of path and length of time to find it
