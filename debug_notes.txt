@@ -1,0 +1,5 @@
+Graph tangible example in igraph or something to see that routing works as expected
+see that the pair_frac scales with N
+
+Try with p=0, super deterministic, so you know what the path is
+(check function by function that everything is what I expect)
