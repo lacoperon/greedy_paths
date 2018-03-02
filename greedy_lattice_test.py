@@ -322,9 +322,22 @@ def calc_num_backwards_steps(G, path, trg):
 
     return num_backwards_steps
 
-def runSimulationMultithread(N=100, dim=1, num_graph_gen=25, pair_frac=0.01, printDict=False,
-                 num_tries=2, verbose=False, alpha=2., p=1, numMax=2,
-                 NUM_MAX_THREADS = 1, graphInput=False):
+'''
+Function which runs a number of simulations based on the various parameters
+described below.
+Input:  N   : int (# of nodes desired in lattice (upper bound)),
+        dim : int (dimension of the lattice),
+        num_graph_gen : int (number of distinct graphs we want to run sims on),
+        pair_frac : float (frac of all node pairs we want to route to/from),
+        num_tries : int (# tries for routing (to catch "bug" effect)),
+        verbose : bool (whether or not to print out everything),
+        alpha : float (what alpha value to use for the sims),
+        p : float (probability of a given node having a shortcut added to it),
+Output: TBD (should be void, need to write code to output various desired
+             measures for each run to a .csv file)
+'''
+def runSimulation(N=100, dim=1, num_graph_gen=25, pair_frac=0.01,
+                 num_tries=1, verbose=False, alpha=2., p=1, numMax=2):
 
     lock = threading.RLock() # lock for a given simulation's data file
 
@@ -334,108 +347,85 @@ def runSimulationMultithread(N=100, dim=1, num_graph_gen=25, pair_frac=0.01, pri
     assert isinstance(N,   int)
     assert actual_N <= N
 
-    if verbose:
-        print "Running simulation on " + str(grid_input) + " lattice"
+    print "Running simulation on " + str(grid_input) + " lattice"
 
     if actual_N != N:
         print("********\n The "+str(dim)+" root of N is not an int\n********")
 
-    dcd = initialize_dcd(numMax)
+    dcd = {} #Dict collecting results
 
-    # Added ability to feed simulation graphs
-    # (TODO: Implement this to test equality of methods)
-    if graphInput:
-        graph_list = graphInput
-    else:
-        graph_list = initialize_graphs(num_graph_gen, N, 1, alpha, NUM_MAX_THREADS)
+    #initializing dict columns (maybe this should be its own function)
+    dvc_pathlength = [initialize_dv_counter() for i in range(numMax)]
+    dvc_shortcuts  = [initialize_dv_counter() for i in range(numMax)]
+    dvc_backsteps  = [initialize_dv_counter() for i in range(numMax)]
 
-    '''
-    The following defines a Thread class that should contain everything required
-    to run multithreaded pathfinding
-    '''
-    class pathfindThread (threading.Thread):
-       def __init__(self, threadID, input_tuple):
-          threading.Thread.__init__(self)
-          self.threadID = threadID
-          self.graph_num = input_tuple[0]
-          self.G = graph_list[self.graph_num]
-          src_index = input_tuple[1]
-          self.src = self.G.nodes()[src_index]
-          trg_index = input_tuple[2]
-          self.trg = self.G.nodes()[trg_index]
-          self.numMax = input_tuple[3]
-          self.numAttempts = input_tuple[4]
+    # Running sim for a number of graphs
+    for graph_number in range(num_graph_gen):
+        G = nx.grid_graph(grid_input, periodic=False)
+        G = G.to_directed()
+        G = add_shortcuts(G, p=p, alpha=alpha, verbose=verbose)
 
-       def run(self):
-          if verbose:
-               print ("Starting PathFind Thread-{}".format(self.threadID))
-          results = []
-          for attemptNum in range(self.numAttempts):
-              for num in range(1,self.numMax+1):
-                  results.append([compute_not_so_greedy_route(self.G,self.src,self.trg,num), num])
-
-              with lock:
-                 dcd["attemptNum"] += [attemptNum]
-                 dcd["graphNum"] += [self.graph_num+1]
-                 for entry in results:
-                      result, knum = entry
-                      dcd["lengthOfPathk="+str(knum)] += [result[0]]
-                      dcd["shortcutsTakenk="+str(knum)] += [
-                          shortcuts_taken(result[1])]
-                      dcd["backsteps_k="+str(knum)] += [
-                          calc_num_backwards_steps(self.G, result[1], self.trg)
-                      ]
-          if verbose:
-              print ("Exiting Thread for Pathfind-{}".format(self.threadID))
-
-    pathfind_queue = Queue()
-
-    for graph_num in range(num_graph_gen):
         if verbose:
             print ("Running with "
-                    + str(int(pair_frac * (actual_N * (actual_N - 1))))
+                    + str(int(pair_frac * actual_N))
                     + " pairs of nodes")
-        for j in range( int(pair_frac * (actual_N * (actual_N - 1)))):
-            # randomly selects src, trg from G.nodes() with replacement
+        for j in range(int(pair_frac * actual_N)):
+            # randomly selects src, trg from G.nodes() WITH REPLACEMENT
             src_index = random.randint(0,actual_N-1)
             trg_index = random.randint(0,actual_N-1)
+            src = G.nodes()[src_index]
+            trg = G.nodes()[trg_index]
+
             for attemptNum in range(num_tries):
-                pathfind_queue.put([graph_num, src_index, trg_index, numMax, attemptNum])
+                results_at_given_run = []
 
-    i = 1
-    while (pathfind_queue.qsize() != 0):
-        num_threads = threading.active_count()
-        if num_threads < NUM_MAX_THREADS:
-            if pathfind_queue.qsize() != 0:
-                input_tuple = pathfind_queue.get()
-                newThread = pathfindThread(i, input_tuple)
-                newThread.start()
-                i += 1
-                pathfind_queue.task_done()
+                for num in range(1,numMax+1):
+                    result = compute_not_so_greedy_route(G,src,trg,num=num)
 
-    pathfind_queue.join()
-    if verbose:
-        for key in dcd:
-            print key
-            print len(dcd[key])
-    return dcd
+                    dvc_pathlength[num-1] = update_dv_counter(result[0], dvc_pathlength[num-1])
+                    dvc_shortcuts[num-1]  = update_dv_counter(shortcuts_taken(result[1]), dvc_shortcuts[num-1])
+                    dvc_backsteps[num-1]  = update_dv_counter(calc_num_backwards_steps(G, result[1], trg), dvc_backsteps[num-1])
+                    results_at_given_run += [result]
 
+                gr_result   = results_at_given_run[0]
+                nsgr_result = results_at_given_run[1]
 
-'''
-Helper function to initialize a data-collecting dictionary
-'''
-def initialize_dcd(numMax):
-    dcd = {}
-    dcd["graphNum"] = []
-    dcd["attemptNum"] = []
-    for num in range(1,numMax+1):
-        dcd["lengthOfPathk="+str(num)] = []
-        dcd["backsteps_k="+str(num)] = []
-        dcd["shortcutsTakenk="+str(num)] = []
-        # TODO: Add the Furthest we get from the trg in the path (relative to src)
-        # IE 5->9 that touches 1 should yield 4
-        # TODO: Add the max and sum of backsteps
-    return dcd
+                if verbose:
+                    print "-----------------"
+                    print "Attempt Number " + str(attemptNum)
+                    print "Routing from " + str(src) + " to " + str(trg)
+                    print "Greedy route is: "
+                    print gr_result
+                    print "Not so greedy route is: "
+                    print nsgr_result
+    return [dvc_pathlength, dvc_shortcuts, dvc_backsteps]
+
+def initialize_dv_counter():
+    dv_counter = {
+        "e_x"  : 0,
+        "e_x2" : 0,
+        "n"    : 0
+    }
+    return dv_counter
+
+def update_dv_counter(datapoint, dv_counter):
+    if dv_counter["n"] is 0:
+        # print("hi")
+        dv_counter["e_x"] = datapoint
+        dv_counter["e_x2"] = datapoint ** 2
+    else:
+        n = dv_counter["n"]
+        # Updates the expected value of X
+        curr_e_x = dv_counter["e_x"]
+        dv_counter["e_x"] = curr_e_x * (float(n) / (n+1)) + (datapoint / float(n+1))
+        # Updates the expected value of x ** 2
+        curr_e_x2 = dv_counter["e_x2"]
+        dv_counter["e_x2"] = curr_e_x2 * (float(n) / (n+1)) + ( (datapoint ** 2.) / (n+1))
+
+    dv_counter["n"] += 1
+
+    # print(dv_counter)
+    return dv_counter
 
 '''
 Helper function for multithreaded initialization of all graphs used in a sim
@@ -513,56 +503,11 @@ def generate_range(xlims, steps):
     return [stepsize * x for x in range(steps)]
 
 '''
-Function which takes in a data collection dictionary, and outputs the data
-collected (for that particular run) to csv
-Input:    dcd : dict (dict w keys as variable names,
-                      lists as values corresponding to the vector representations
-                      of those columns)
-Output :  void (Should write to .csv though...)
-'''
-# TODO: Implement this through buffering (or, even better, multithreaded
-# row writing with threaded locking -- maybe in batches -- or perhaps
-# writing to a database for increased efficiency for map reduce stuff)
-def write_dcd_to_csv(dcd, filename="test.csv"):
-    print("Touched for " + filename)
-    keys = sorted(dcd.keys())
-    with open(filename, "wb") as outfile:
-        writer = csv.writer(outfile)
-        writer.writerow(keys)
-        for index in range(len(dcd[keys[0]])):
-            writer.writerow([dcd[x][index] for x in keys])
-
-'''
-Test simThread for the multithreaded runSimulation
-'''
-class simThreadTest (threading.Thread):
-   def __init__(self, threadID, input_tuple):
-      threading.Thread.__init__(self)
-      self.threadID = threadID
-      self.N = input_tuple[0]
-      self.alpha = input_tuple[1]
-      self.p = input_tuple[2]
-      self.NUM_MAX_THREADS = 16
-   def run(self):
-      print ("Starting Thread-{} for {}".format(self.threadID, input_tuple))
-      dcd = runSimulationMultithread(N=self.N, dim=dim, num_graph_gen=1, pair_frac=0.01/self.N,
-                                printDict=False, num_tries=2, verbose=False,
-                                numMax = num_lookahead,
-                                alpha=self.alpha, p=self.p, NUM_MAX_THREADS = self.NUM_MAX_THREADS)
-      print ("Writing CSV for Thread-{}".format(self.threadID))
-      filename = "./data_output/sim_"
-      filename += "p_"+str(self.p)+"_alpha_"+str(self.alpha)
-      filename += "_N_"+str(self.N)+"_dim_" + str(dim) + "_test.csv"
-      # write_dcd_to_csv(dcd, filename= filename) # commented out for testing
-      print ("Exiting  Thread-{}".format(self.threadID))
-      thread_init_queue_test.task_done()
-
-'''
 ~~~ THE ACTUAL SIMULATION RUN CODE STARTS HERE ~~~
 '''
 if __name__ == '__main__':
 
-    start = time.time()
+    # start = time.time()
 
     # Removes prior run files
     files = glob.glob('./data_output/*.csv')
@@ -573,42 +518,47 @@ if __name__ == '__main__':
     random.seed(1)
     n = int(sys.argv[1])
     ns = [n]
-    dim = 3
+    dim = int(sys.argv[2])
     # generates range of values
     # ie generate_range([0,3], 7) returns [0., 0.5, 1., 1.5, 2., 2.5, 3.]
-    alphas = generate_range([0,3],10)
+    all_alphas = sys.argv[4]
+    if all_alphas == "True":
+        alphas = generate_range([0,3],10)
+    else:
+        alphas = [2.]
     ps     = [1]
-    num_lookahead = 2 # IE number of 'links' we look out (IE 1 is greedy)
-    NUM_MAX_THREADS = 16 # SHOULD OPTIMISE THIS -->
-# https://stackoverflow.com/questions/481970/how-many-threads-is-too-many
-    num_graph_gen = 1
-    thread_init_queue_test = Queue()
-    graph_list = []
+    num_lookahead = int(sys.argv[3]) # IE number of 'links' we look out (IE 1 is greedy)
+    num_graph_gen = 25
 
+    result_values = []
     for N in ns:
         for alpha in alphas:
             for p in ps:
-                # thread_init_queue.put([N, alpha, p])
-                thread_init_queue_test.put([N, alpha, p])
-                graph_list.append([num_graph_gen, N, p, alpha, 5])
+                print("Running sim for N:{}, alpha:{}, p:{}".format(N, alpha, p))
+                result = runSimulation(
+                N=N, dim=dim, num_graph_gen=num_graph_gen, pair_frac=0.1, alpha=alpha, p=p, numMax=num_lookahead
+                )
+                resultLabels = ["<T>", "Num Shortcuts", "Num Backsteps"]
+                result_value = [N, alpha]
 
-    print("Number of graphs is {}".format(len(graph_list)))
+                # Prints out results to csv file
+                for i in range(len(result)):
+                    for k in range(num_lookahead):
+                        e_x = result[i][k]["e_x"]
+                        std = math.sqrt(result[i][k]["e_x2"] - (result[i][k]["e_x"])**2.)
+                        label = resultLabels[i]
+                        result_value += [e_x, std]
+                        print("Expected Value of {0}: {1} for {2}".format(label, e_x, k))
+                        print("Std Dev of {0}: {1} for {2}".format(label, std, k))
+                result_values.append(result_value)
 
-    # Use the same graphs for testing -- the graphs look similar, but we want
-    # to ensure that the graphs are the same for the same graphs
-    i = 1
-    while (thread_init_queue_test.qsize() != 0):
-        num_threads = threading.active_count()
-        if num_threads < NUM_MAX_THREADS:
-            if thread_init_queue_test.qsize() != 0:
-                input_tuple = thread_init_queue_test.get()
-                testThread = simThreadTest(i, input_tuple)
-                testThread.start()
-                i += 1
-
-    thread_init_queue_test.join()
-
-    end = time.time()
-    f = open("timing_d3.csv", "a")
-    f.write("{0},{1}\n".format(n, end-start))
-    f.close()
+    with open('results_N_{}_dim_{}_k_{}.csv'.format(n, dim, num_lookahead), 'wb') as csvfile:
+        w = csv.writer(csvfile)
+        header_rows = ["N", "alpha"]
+        k_invariant_prefixes = ['E<T>', 'S<T>', 'E(short)', 'S(short)', 'E(back)', 'S(back)']
+        for num in range(1, num_lookahead+1):
+            prefixes = list(map(lambda x : x + "k={}".format(num), k_invariant_prefixes))
+            header_rows += prefixes
+        w.writerow(header_rows)
+        for row in result_values:
+            w.writerow(row)
