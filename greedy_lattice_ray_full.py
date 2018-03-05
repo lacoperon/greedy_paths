@@ -499,6 +499,10 @@ if __name__ == '__main__':
 
     end = time.time()
     print("Ran in time: {} ".format(end-start))
+
+    with open("timing_ray.csv", "a") as tfile:
+        w = csv.writer(tfile)
+        w.writerow([n, start-end])
                 # # Prints out results to csv file
                 # for i in range(len(result)):
                 #     for k in range(num_lookahead):

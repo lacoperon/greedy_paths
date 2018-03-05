@@ -530,6 +530,8 @@ if __name__ == '__main__':
     num_lookahead = int(sys.argv[3]) # IE number of 'links' we look out (IE 1 is greedy)
     num_graph_gen = 25
 
+    start = time.time()
+
     result_values = []
     for N in ns:
         for alpha in alphas:
@@ -541,24 +543,30 @@ if __name__ == '__main__':
                 resultLabels = ["<T>", "Num Shortcuts", "Num Backsteps"]
                 result_value = [N, alpha]
 
-                # Prints out results to csv file
-                for i in range(len(result)):
-                    for k in range(num_lookahead):
-                        e_x = result[i][k]["e_x"]
-                        std = math.sqrt(result[i][k]["e_x2"] - (result[i][k]["e_x"])**2.)
-                        label = resultLabels[i]
-                        result_value += [e_x, std]
-                        print("Expected Value of {0}: {1} for {2}".format(label, e_x, k))
-                        print("Std Dev of {0}: {1} for {2}".format(label, std, k))
-                result_values.append(result_value)
+    end = time.time()
+    print("Ran in time: {} ".format(end-start))
+    with open("timing_serial.csv", "a") as tfile:
+        w = csv.writer(tfile)
+        w.writerow([n, start-end])
 
-    with open('results_N_{}_dim_{}_k_{}.csv'.format(n, dim, num_lookahead), 'wb') as csvfile:
-        w = csv.writer(csvfile)
-        header_rows = ["N", "alpha"]
-        k_invariant_prefixes = ['E<T>', 'S<T>', 'E(short)', 'S(short)', 'E(back)', 'S(back)']
-        for num in range(1, num_lookahead+1):
-            prefixes = list(map(lambda x : x + "k={}".format(num), k_invariant_prefixes))
-            header_rows += prefixes
-        w.writerow(header_rows)
-        for row in result_values:
-            w.writerow(row)
+    #             # Prints out results to csv file
+    #             for i in range(len(result)):
+    #                 for k in range(num_lookahead):
+    #                     e_x = result[i][k]["e_x"]
+    #                     std = math.sqrt(result[i][k]["e_x2"] - (result[i][k]["e_x"])**2.)
+    #                     label = resultLabels[i]
+    #                     result_value += [e_x, std]
+    #                     print("Expected Value of {0}: {1} for {2}".format(label, e_x, k))
+    #                     print("Std Dev of {0}: {1} for {2}".format(label, std, k))
+    #             result_values.append(result_value)
+    #
+    # with open('results_N_{}_dim_{}_k_{}.csv'.format(n, dim, num_lookahead), 'wb') as csvfile:
+    #     w = csv.writer(csvfile)
+    #     header_rows = ["N", "alpha"]
+    #     k_invariant_prefixes = ['E<T>', 'S<T>', 'E(short)', 'S(short)', 'E(back)', 'S(back)']
+    #     for num in range(1, num_lookahead+1):
+    #         prefixes = list(map(lambda x : x + "k={}".format(num), k_invariant_prefixes))
+    #         header_rows += prefixes
+    #     w.writerow(header_rows)
+    #     for row in result_values:
+            # w.writerow(row)
