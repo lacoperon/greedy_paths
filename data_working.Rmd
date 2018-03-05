@@ -1,0 +1,233 @@
+---
+title: "Greedy Routing Analysis"
+output:
+  html_document:
+    df_print: paged
+---
+
+```{r message=FALSE, warning=FALSE, include=TRUE}
+library(readr)
+library(dplyr)
+library(ggplot2)
+d0 <- read_csv("./data_output/results_N_100_dim_2_k_2.csv")
+d15 <-read_csv("./data_output/results_N_200_dim_2_k_2.csv")
+d2 <- read_csv("./data_output/results_N_400_dim_2_k_2.csv")
+d3 <- read_csv("./data_output/results_N_800_dim_2_k_2.csv")
+d4 <- read_csv("./data_output/results_N_1600_dim_2_k_2.csv")
+d5 <- read_csv("./data_output/results_N_3200_dim_2_k_2.csv")
+d6 <- read_csv("./data_output/results_N_6400_dim_2_k_2.csv")
+
+# Dataset
+names <- c("N", "alpha", "E(T)", "S(T)", "E(short)", "S(short)", "E(back)", "S(back)")
+
+N_df <- rbind(d0, d15,d2,d3,d4, d5, d6)
+N_df_k1 <- select(N_df, N, alpha, `E<T>k=1`, `S<T>k=1`, `E(short)k=1`,
+                  `S(short)k=1`, `E(back)k=1`, `S(back)k=1`) %>%
+  mutate(k=1)
+colnames(N_df_k1) <- names
+
+N_df_k2 <- select(N_df, N, alpha, `E<T>k=2`, `S<T>k=2`, `E(short)k=2`,
+                  `S(short)k=1`, `E(back)k=2`, `S(back)k=2`) %>%
+  mutate(k=2)
+colnames(N_df_k2) <- names
+
+N_df <- rbind(N_df_k1, N_df_k2)
+
+colnames(N_df) <- c(names, "k")
+N_df$k <- factor((N_df$k))
+
+ggplot(N_df, aes(x=N, y=`E(T)`, color=k)) + geom_line() + 
+  geom_errorbar(aes(ymin=`E(T)`-`S(T)`, ymax=`E(T)`+`S(T)`, width=100)) +
+  labs(
+    x = "Number of nodes in graph",
+    y = "E<T> (Expecteed path length)",
+    title="Expected Path Length for k=2, dim=2, varying N",
+    subtitle="Should probably run on more values still..."
+  )
+
+
+# There's obviously an error here in standard deviations... we should fix this
+ggplot(N_df, aes(x=N, y=`E(short)`, color=k)) + geom_line() + 
+  geom_errorbar(aes(ymin=`E(short)`-`S(short)`, ymax=`E(short)`+`S(short)`, width=100, color=k)) +
+  labs(
+    x = "Number of nodes in graph",
+    y = "E(short) (Expected number of shortcuts used in path)",
+    title="Expected Shortcuts Used for k=2, dim=2, varying N",
+    subtitle="Should probably run on more values still..."
+  )
+
+
+ggplot(N_df, aes(x=N, y=`E(back)`, color=k)) + geom_line() + 
+  geom_errorbar(aes(ymin=`E(back)`-`S(back)`, ymax=`E(back)`+`S(back)`, width=100, color=k)) +
+  labs(
+    x = "Number of nodes in graph",
+    y = "E(back) (Expected number of backsteps used in path)",
+    title="Expected Backsteps Used for k=2, dim=2, varying N",
+    subtitle="Should probably run on more values still..."
+  )
+```
+
+
+```{r}
+names <- c(names, "dim")
+d0 <- cbind(read_csv("./data_output/results_N_1000_dim_1_k_2.csv"), "1")
+colnames(d0) <- c(colnames(d0)[1:14], "dim")
+d1 <- cbind(read_csv("./data_output/results_N_1000_dim_2_k_2.csv"), "2")
+colnames(d1) <- c(colnames(d0)[1:14], "dim")
+d2 <- cbind(read_csv("./data_output/results_N_1000_dim_3_k_2.csv"), "3")
+colnames(d2) <- c(colnames(d0)[1:14], "dim")
+d3 <- cbind(read_csv("./data_output/results_N_1000_dim_4_k_2.csv"), "4")
+colnames(d3) <- c(colnames(d0)[1:14], "dim")
+
+N_df2 <- rbind(d0, d1, d2, d3)
+N_df2_k1 <- select(N_df2, N, alpha, dim, `E<T>k=1`, `S<T>k=1`, `E(short)k=1`,
+                  `S(short)k=1`, `E(back)k=1`, `S(back)k=1`) %>%
+  mutate(k=1)
+
+names <- c("N","alpha", "dim","E(T)","S(T)","E(short)","S(short)","E(back)", "S(back)")
+colnames(N_df2_k1) <- names
+
+N_df2_k2 <- select(N_df2, N, alpha, dim, `E<T>k=2`, `S<T>k=2`, `E(short)k=2`,
+                  `S(short)k=1`, `E(back)k=2`, `S(back)k=2`) %>%
+  mutate(k=2)
+colnames(N_df2_k2) <- c(names)
+
+N_df2 <- rbind(N_df2_k1, N_df2_k2)
+colnames(N_df2) <- c(names, "k")
+
+ggplot(N_df2_k1, aes(x=`alpha`, y=`E(T)`, color=`dim`)) + geom_line() + 
+  geom_errorbar(aes(ymin=`E(T)`-`S(T)`, ymax=`E(T)`+`S(T)`, width=0.1, color=dim)) +
+  labs(
+    title="Expected path length by dimension (k=1)",
+    subtitle="Should do longer runs for sure... esp for larger dimensions",
+    x = "Alpha Value",
+    y = "E(T) (Expected pathlength)"
+  ) + scale_y_continuous(trans="log10")
+
+ggplot(N_df2_k2, aes(x=`alpha`, y=`E(T)`, color=`dim`)) + geom_line() + 
+  geom_errorbar(aes(ymin=`E(T)`-`S(T)`, ymax=`E(T)`+`S(T)`, width=0.1, color=dim)) +
+  labs(
+    title="Expected path length by dimension (k=2)",
+    subtitle="Should do longer runs for sure... esp for larger dimensions",
+    x = "Alpha Value",
+    y = "E(T) (Expected pathlength)"
+  ) + scale_y_continuous(trans="log10") + ylim(0, 3)
+```
+```{r}
+df <- read_csv("./data_output/results_N_1000_dim_2_k_4.csv") %>%
+  select(`E<T>k=1`, `E<T>k=2`,`E<T>k=3`,`E<T>k=4`)
+df <- data.frame(t(df))
+colnames(df) <- "E(T)"
+df$k <- factor(1:4)
+
+# There is also (almost certainly) a bug here -- check collection code for this
+
+
+ggplot(df, aes(x=k, y=`E(T)`, color=I("black"), fill=k)) + geom_bar(stat="identity") +
+  labs(
+    title= "Expected path length by num_lookahead",
+    subtitle="I need to really use larger N values if we're going for dim=2",
+    x = "num_lookahead (aka k)",
+    y = "Expected path length (aka <T>)"
+  )
+```
+
+```{r}
+df3_filename <- "./data_output/results_N_1000_dim_1_k_2.csv"
+
+loadInK2Dataset <- function(filename) {
+  N_df3 <- read_csv(filename)
+
+  N_df3_k1 <- select(N_df3, N, alpha, `E<T>k=1`, `S<T>k=1`, `E(short)k=1`,
+                    `S(short)k=1`, `E(back)k=1`, `S(back)k=1`) %>%
+    mutate(k=1)
+  
+  names <- c("N","alpha","E(T)","S(T)","E(short)","S(short)","E(back)", "S(back)")
+  colnames(N_df3_k1) <- names
+  
+  N_df3_k2 <- select(N_df3, N, alpha, `E<T>k=2`, `S<T>k=2`, `E(short)k=2`,
+                    `S(short)k=1`, `E(back)k=2`, `S(back)k=2`) %>%
+    mutate(k=2)
+  colnames(N_df3_k2) <- c(names)
+  
+  N_df3 <- rbind(N_df3_k1, N_df3_k2)
+  colnames(N_df3) <- c(names, "k")
+  N_df3$k <- factor(N_df3$k)
+  
+  return(N_df3)
+}
+
+N_df3 <- loadInK2Dataset(df3_filename)
+
+ggplot(N_df3, aes(x=`alpha`, y=`E(T)`, color=`k`)) + geom_line()+
+  geom_errorbar(aes(ymin=`E(T)`-`S(T)`, ymax=`E(T)`+`S(T)`, width=0.1, color=k)) +
+  labs(
+    title="Expected path length by k (n=1000, dim=1)",
+    subtitle="Should do longer runs for sure... esp for larger dimensions",
+    x = "Alpha Value",
+    y = "E(T) (Expected pathlength)"
+  )  + scale_y_continuous(trans="log10")
+
+N_df4 <- loadInK2Dataset("./data_output/results_N_10000_dim_2_k_2.csv")
+
+ggplot(N_df4, aes(x=`alpha`, y=`E(T)`, color=`k`)) + geom_line()+
+  geom_errorbar(aes(ymin=`E(T)`-`S(T)`, ymax=`E(T)`+`S(T)`, width=0.1, color=k)) +
+  labs(
+    title="Expected path length by k (n=10000, dim=2)",
+    x = "Alpha Value",
+    y = "E(T) (Expected pathlength)"
+  )  + scale_y_continuous(trans="log10")
+
+
+```
+Ray parallel comparison
+```{r}
+library(readr)
+library(dplyr)
+library(ggplot2)
+
+df_serial <- read_csv("./data_output/timing_serial.csv", col_names = F) %>%
+  mutate(label = "serial") %>%
+  mutate(X2 = -X2)
+
+df_ray <- read_csv("./data_output/timing_ray.csv", col_names = F) %>%
+  mutate(label = "ray") %>%
+  mutate(X2 = -X2)
+ 
+df <- rbind(df_ray, df_serial)
+
+ggplot(df, aes(x=X1, y=X2, color=label)) + geom_line()
+
+cor(sqrt(df_serial$X2), df_serial$X1)
+cor(sqrt(df_ray$X2), df_ray$X1)
+
+x <- df_ray$X1
+y <- df_ray$X2
+
+quad_ray <- lm(y ~ I(x ** 2) +  1)
+print("Time to do 10000, 100000 nodes on Kurtz for Ray Implementation in Days")
+predict.lm(quad_ray, data.frame(x = c(10000))) / 3600 / 24
+predict.lm(quad_ray, data.frame(x = c(100000))) / 3600 / 24
+
+
+x <- df_serial$X1
+y <- df_serial$X2
+
+quad_serial <- lm(y ~ I(x ** 2) +  1)
+print("Time to do 10000, 100000 nodes on Kurtz for Serial Implementation in Days")
+predict.lm(quad_serial, data.frame(x = c(10000))) / 3600 / 24
+predict.lm(quad_serial, data.frame(x = c(100000))) / 3600 / 24
+
+quad_ray_fit    <- predict.lm(quad_ray,    data.frame(x = c(df_ray$X1)))
+quad_serial_fit <- predict.lm(quad_serial, data.frame(x = c(df_ray$X1)))
+
+df2 <- rbind(df, data.frame(X1=df_ray$X1, X2 = quad_ray_fit, label="predray"),
+                 data.frame(X1=df_ray$X1, X2 = quad_serial_fit, label="predserial"))
+
+ggplot(df2, aes(x=X1, y=X2, color=label)) + geom_line() +
+  labs(title="Ray vs Serial Implementation of Python Code",
+       subtitle="Joy, it works as expected out of the box",
+       x = "Number of Nodes",
+       y = "Time to Run (sec)")
+
+```
