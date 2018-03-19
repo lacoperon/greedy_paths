@@ -1,9 +1,10 @@
 import sys, os
-sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
-import greedy_lattice_test as gr
 import pytest
 import networkx as nx
 import random
+
+sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
+import greedy_lattice_ray_full as gr
 
 
 class TestHelperFunctions(object):
