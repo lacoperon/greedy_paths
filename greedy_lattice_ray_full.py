@@ -9,15 +9,12 @@ import threading
 import time
 import sys
 import copy
+import pandas
 import ray
 import functools
 
-ray.init()
-
 # TODO: Could probably make this faster using dynamic programming on each graph,
 #       Saving each node's distance to trg, and maybe also each node's neighbors
-
-# TODO: Add more coherent print logic, put it in a log file
 
 '''
 Input:  Two nodes (where nodes are represented by tuples of dimension length)
@@ -461,6 +458,8 @@ def generate_range(xlims, steps):
 '''
 
 if __name__ == '__main__':
+
+    ray.init()
 
     # start = time.time()
 
