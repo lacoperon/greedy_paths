@@ -36,6 +36,8 @@ def perturb_sim(num_lookahead, k, graph_type, N=1000, dim=2, STEP=0.01,
 
         if graph_type == "hyperbolic":
             raise Exception("Hyperbolic graphs are not yet implemented")
+            # http://parco.iti.kit.edu/looz/attachments/publications/HyperbolicGenerator.pdf
+            
 
         # also ,random hyperbolic graphs -- bc embed real-world networks well
 

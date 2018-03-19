@@ -186,44 +186,51 @@ library(readr)
 library(dplyr)
 library(ggplot2)
 
-df_serial <- read_csv("./data_output/timing_serial.csv", col_names = F) %>%
-  mutate(label = "serial") %>%
-  mutate(X2 = -X2)
+# df_serial <- read_csv("./data_output/timing_serial.csv", col_names = F) %>%
+#   mutate(label = "serial") %>%
+#   mutate(X2 = -X2)
 
 df_ray <- read_csv("./data_output/timing_ray.csv", col_names = F) %>%
   mutate(label = "ray") %>%
   mutate(X2 = -X2)
  
-df <- rbind(df_ray, df_serial)
+# df <- rbind(df_ray, df_serial)
 
-ggplot(df, aes(x=X1, y=X2, color=label)) + geom_line()
+ggplot(df_ray, aes(x=X1, y=X2, color=label)) + geom_line()
 
-cor(sqrt(df_serial$X2), df_serial$X1)
+# cor(sqrt(df_serial$X2), df_serial$X1)
+cor(df_ray$X2, df_ray$X1)
 cor(sqrt(df_ray$X2), df_ray$X1)
 
 x <- df_ray$X1
 y <- df_ray$X2
 
 quad_ray <- lm(y ~ I(x ** 2) +  1)
-print("Time to do 10000, 100000 nodes on Kurtz for Ray Implementation in Days")
+print("Time to do 10000, 100000 nodes on Kurtz for Ray Implementation in Days (assuming N^2)")
 predict.lm(quad_ray, data.frame(x = c(10000))) / 3600 / 24
 predict.lm(quad_ray, data.frame(x = c(100000))) / 3600 / 24
 
 
-x <- df_serial$X1
-y <- df_serial$X2
+lin_ray <- lm(y ~ x +  1)
+print("Time to do 10000, 100000 nodes on Kurtz for Ray Implementation in Days (assuming N)")
+predict.lm(lin_ray, data.frame(x = c(10000))) / 3600 / 24
+predict.lm(lin_ray, data.frame(x = c(100000))) / 3600 / 24
 
-quad_serial <- lm(y ~ I(x ** 2) +  1)
-print("Time to do 10000, 100000 nodes on Kurtz for Serial Implementation in Days")
-predict.lm(quad_serial, data.frame(x = c(10000))) / 3600 / 24
-predict.lm(quad_serial, data.frame(x = c(100000))) / 3600 / 24
-
+df <- df_ray
+# x <- df_serial$X1
+# y <- df_serial$X2
+# 
+# quad_serial <- lm(y ~ I(x ** 2) +  1)
+# print("Time to do 10000, 100000 nodes on Kurtz for Serial Implementation in Days")
+# predict.lm(quad_serial, data.frame(x = c(10000))) / 3600 / 24
+# predict.lm(quad_serial, data.frame(x = c(100000))) / 3600 / 24
+# 
 quad_ray_fit    <- predict.lm(quad_ray,    data.frame(x = c(df_ray$X1)))
-quad_serial_fit <- predict.lm(quad_serial, data.frame(x = c(df_ray$X1)))
-
-df2 <- rbind(df, data.frame(X1=df_ray$X1, X2 = quad_ray_fit, label="predray"),
-                 data.frame(X1=df_ray$X1, X2 = quad_serial_fit, label="predserial"))
-
+# quad_serial_fit <- predict.lm(quad_serial, data.frame(x = c(df_ray$X1)))
+# 
+df2 <- rbind(df, data.frame(X1=df_ray$X1, X2 = quad_ray_fit, label="predray"))
+#                  data.frame(X1=df_ray$X1, X2 = quad_serial_fit, label="predserial"))
+# 
 ggplot(df2, aes(x=X1, y=X2, color=label)) + geom_line() +
   labs(title="Ray vs Serial Implementation of Python Code",
        subtitle="Joy, it works as expected out of the box",

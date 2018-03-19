@@ -8,11 +8,8 @@ import glob
 import threading
 import time
 import sys
+from Queue import *
 import copy
-import ray
-import functools
-
-ray.init()
 
 # TODO: Could probably make this faster using dynamic programming on each graph,
 #       Saving each node's distance to trg, and maybe also each node's neighbors
@@ -30,32 +27,6 @@ def lattice_dist(node1, node2):
     else:
         return sum((abs(b-a) for a,b in zip(node1,node2)))
 
-def initialize_dv_counter():
-    dv_counter = {
-        "e_x"  : 0,
-        "e_x2" : 0,
-        "n"    : 0
-    }
-    return dv_counter
-
-def update_dv_counter(datapoint, dv_counter):
-    if dv_counter["n"] is 0:
-        # print("hi")
-        dv_counter["e_x"] = datapoint
-        dv_counter["e_x2"] = datapoint ** 2
-    else:
-        n = dv_counter["n"]
-        # Updates the expected value of X
-        curr_e_x = dv_counter["e_x"]
-        dv_counter["e_x"] = curr_e_x * (float(n) / (n+1)) + (datapoint / float(n+1))
-        # Updates the expected value of x ** 2
-        curr_e_x2 = dv_counter["e_x2"]
-        dv_counter["e_x2"] = curr_e_x2 * (float(n) / (n+1)) + ( (datapoint ** 2.) / (n+1))
-
-    dv_counter["n"] += 1
-
-    # print(dv_counter)
-    return dv_counter
 
 '''
 Function to see if two nodes are, *de novo*, adjacent to each other in a lattice
@@ -232,14 +203,14 @@ Output:  path_taken : path from cur_node ... trg taken
 def select_ns_greedy_path(G, pos_paths, trg):
     pos_path_end_nodes = [x[-1] for x in pos_paths]
 
-    pos_path_dists = list(map(lambda x : lattice_dist(x, trg),
-                            pos_path_end_nodes))
+    pos_path_dists = map(lambda x : lattice_dist(x, trg),
+                            pos_path_end_nodes)
     min_dist = min(pos_path_dists)
     pos_path_indices = range(len(pos_path_dists))
 
     # list of possible indices corresp. to best 'not so greedy' paths
-    pos_path_indices = list(filter(lambda x : pos_path_dists[x]==min_dist,
-                              pos_path_indices))
+    pos_path_indices = filter(lambda x : pos_path_dists[x]==min_dist,
+                              pos_path_indices)
     # randomly selects one such 'not so greedy' paths
     chosen_index = random.sample(pos_path_indices, 1)[0]
     path = pos_paths[chosen_index]
@@ -276,10 +247,10 @@ def add_shortcuts(G, p=1, alpha=2., mode="oneforall", verbose=False):
         new_edges = map(lambda x: (x, choose_shortcut_partner(G,x,alpha)),
                                    chosen_nodes)
         if verbose:
-            print("There are " +str(len(new_edges))+ " edges added by add_shortcuts")
+            print "There are " +str(len(new_edges))+ " edges added by add_shortcuts"
         G.add_edges_from(new_edges)
         if verbose:
-            print(new_edges)
+            print new_edges
 
     return G
 
@@ -302,7 +273,7 @@ def choose_shortcut_partner(G, node, alpha):
     nei_set = set(G.neighbors(node))
     nei_set.add(node) #note that we also don't want a self-loop shortcut
     # All nodes that are not the chosen node's neighbors
-    not_neighbors = list(filter(lambda x : x not in nei_set, nodes))
+    not_neighbors = filter(lambda x : x not in nei_set, nodes)
     # Distance between the chosen node and its 'not neighbors'
 
     not_neighbor_dists = map(lambda x : lattice_dist(x, node),
@@ -311,8 +282,8 @@ def choose_shortcut_partner(G, node, alpha):
     # of connecting the chosen_node to a node in not neighbors should
     # be proportional to r ** - alpha
 
-    prop_to_partner_prob = list(map(lambda x : x ** (- alpha),
-                               not_neighbor_dists))
+    prop_to_partner_prob = map(lambda x : x ** (- alpha),
+                               not_neighbor_dists)
     total = sum(prop_to_partner_prob)
     rand_val = total * random.random()
 
@@ -351,60 +322,6 @@ def calc_num_backwards_steps(G, path, trg):
 
     return num_backwards_steps
 
-@ray.remote
-def runRoute(graph_key, actual_N, numMax):
-
-    G = nx.read_gpickle("ray_graphs/graph_{}".format(graph_key))
-
-    # randomly selects src, trg from G.nodes() WITH REPLACEMENT
-    src_index = random.randint(0,actual_N-1)
-    trg_index = random.randint(0,actual_N-1)
-    src = G.nodes()[src_index]
-    trg = G.nodes()[trg_index]
-
-    results = {}
-    num_tries = 1
-
-    for attemptNum in range(num_tries):
-        for num in range(1,numMax+1):
-            result = compute_not_so_greedy_route(G,src,trg,num=num)
-            pathlength = result[0]
-            num_shortcuts = shortcuts_taken(result[1])
-            num_backsteps = calc_num_backwards_steps(G, result[1], trg)
-            results[str(num)] = [pathlength, num_shortcuts, num_backsteps]
-
-    return results
-
-
-@ray.remote
-def runSim(numMax, grid_input, p, alpha, pair_frac, actual_N, scale_val):
-    #initializing dict columns (maybe this should be its own function)
-    dvc_pathlength = [initialize_dv_counter() for i in range(numMax)]
-    dvc_shortcuts  = [initialize_dv_counter() for i in range(numMax)]
-    dvc_backsteps  = [initialize_dv_counter() for i in range(numMax)]
-
-    verbose = False
-    num_tries = 1
-
-    G = nx.grid_graph(grid_input, periodic=False)
-    G = G.to_directed()
-    G = add_shortcuts(G, p=p, alpha=alpha, verbose=verbose)
-
-
-    graph_key = random.getrandbits(100)
-    graph_path = "ray_graphs/graph_{}".format(graph_key)
-    nx.write_gpickle(G, graph_path)
-
-    if verbose:
-        print ("Running with "
-                + str(int(pair_frac * actual_N))
-                + " pairs of nodes")
-
-    runs = ray.get([runRoute.remote(graph_key, actual_N, numMax) for i in range(int(pair_frac * scale_val))])
-    print(runs[1:10])
-
-    return
-
 '''
 Function which runs a number of simulations based on the various parameters
 described below.
@@ -419,28 +336,159 @@ Input:  N   : int (# of nodes desired in lattice (upper bound)),
 Output: TBD (should be void, need to write code to output various desired
              measures for each run to a .csv file)
 '''
-
-@ray.remote
 def runSimulation(N=100, dim=1, num_graph_gen=25, pair_frac=0.01,
                  num_tries=1, verbose=False, alpha=2., p=1, numMax=2):
 
-    print("Running sim for N:{}, alpha:{}, p:{}".format(N, alpha, p))
+    lock = threading.RLock() # lock for a given simulation's data file
+
     grid_input = [int(N ** (1. / float(dim)))] * dim
-    actual_N = functools.reduce(operator.mul, grid_input)
+    scale_val = grid_input[0]
+    actual_N = reduce(operator.mul, grid_input)
     assert isinstance(dim, int) and dim > 0
     assert isinstance(N,   int)
     assert actual_N <= N
-    scale_val = grid_input[0]
 
-    print("Running simulation on " + str(grid_input) + " lattice")
+    print "Running simulation on " + str(grid_input) + " lattice"
 
     if actual_N != N:
         print("********\n The "+str(dim)+" root of N is not an int\n********")
 
-    # Running sim for a number of graphs
-    results = ray.get([runSim.remote(numMax, grid_input, p, alpha, pair_frac, actual_N, scale_val) for i in range(num_graph_gen)])
+    dcd = {} #Dict collecting results
 
-    return
+    #initializing dict columns (maybe this should be its own function)
+    dvc_pathlength = [initialize_dv_counter() for i in range(numMax)]
+    dvc_shortcuts  = [initialize_dv_counter() for i in range(numMax)]
+    dvc_backsteps  = [initialize_dv_counter() for i in range(numMax)]
+
+    # Running sim for a number of graphs
+    for graph_number in range(num_graph_gen):
+        G = nx.grid_graph(grid_input, periodic=False)
+        G = G.to_directed()
+        G = add_shortcuts(G, p=p, alpha=alpha, verbose=verbose)
+
+        if verbose:
+            print ("Running with "
+                    + str(int(pair_frac * scale_val))
+                    + " pairs of nodes")
+        for j in range(int(pair_frac * scale_val)):
+            # randomly selects src, trg from G.nodes() WITH REPLACEMENT
+            src_index = random.randint(0,actual_N-1)
+            trg_index = random.randint(0,actual_N-1)
+            src = G.nodes()[src_index]
+            trg = G.nodes()[trg_index]
+
+            for attemptNum in range(num_tries):
+                results_at_given_run = []
+
+                for num in range(1,numMax+1):
+                    result = compute_not_so_greedy_route(G,src,trg,num=num)
+
+                    dvc_pathlength[num-1] = update_dv_counter(result[0], dvc_pathlength[num-1])
+                    dvc_shortcuts[num-1]  = update_dv_counter(shortcuts_taken(result[1]), dvc_shortcuts[num-1])
+                    dvc_backsteps[num-1]  = update_dv_counter(calc_num_backwards_steps(G, result[1], trg), dvc_backsteps[num-1])
+                    results_at_given_run += [result]
+
+                gr_result   = results_at_given_run[0]
+                nsgr_result = results_at_given_run[1]
+
+                if verbose:
+                    print "-----------------"
+                    print "Attempt Number " + str(attemptNum)
+                    print "Routing from " + str(src) + " to " + str(trg)
+                    print "Greedy route is: "
+                    print gr_result
+                    print "Not so greedy route is: "
+                    print nsgr_result
+    return [dvc_pathlength, dvc_shortcuts, dvc_backsteps]
+
+def initialize_dv_counter():
+    dv_counter = {
+        "e_x"  : 0,
+        "e_x2" : 0,
+        "n"    : 0
+    }
+    return dv_counter
+
+def update_dv_counter(datapoint, dv_counter):
+    if dv_counter["n"] is 0:
+        # print("hi")
+        dv_counter["e_x"] = datapoint
+        dv_counter["e_x2"] = datapoint ** 2
+    else:
+        n = dv_counter["n"]
+        # Updates the expected value of X
+        curr_e_x = dv_counter["e_x"]
+        dv_counter["e_x"] = curr_e_x * (float(n) / (n+1)) + (datapoint / float(n+1))
+        # Updates the expected value of x ** 2
+        curr_e_x2 = dv_counter["e_x2"]
+        dv_counter["e_x2"] = curr_e_x2 * (float(n) / (n+1)) + ( (datapoint ** 2.) / (n+1))
+
+    dv_counter["n"] += 1
+
+    # print(dv_counter)
+    return dv_counter
+
+'''
+Helper function for multithreaded initialization of all graphs used in a sim
+'''
+def initialize_graphs(num_graph_gen, N, alpha, p=1, NUM_MAX_THREADS=1):
+    '''
+    The following defines a Thread class that should contain everything required
+    to run multithreaded graph generation, in so doing allowing for multicore
+    operations to succeed.
+    '''
+    class graphThread (threading.Thread):
+       def __init__(self, threadID, input_tuple):
+          threading.Thread.__init__(self)
+          self.threadID = threadID
+          self.graph_num = input_tuple[0]
+          self.N = input_tuple[1]
+          self.p = input_tuple[2]
+          self.alpha = input_tuple[3]
+          self.verbose = False
+
+       def run(self):
+          # print ("Starting Graph Gen Thread-{}".format(input_tuple))
+          G = nx.grid_graph(grid_input, periodic=False)
+          G = G.to_directed()
+          G = add_shortcuts(G, p=1, alpha=self.alpha, verbose=self.verbose)
+          graph_list[self.graph_num] = G
+          graph_gen_queue.task_done()
+          # print ("Exiting Thread for GraphGen-{}".format(self.graph_num))
+
+
+    assert NUM_MAX_THREADS > 1 and isinstance(NUM_MAX_THREADS, int)
+    grid_input = [int(N ** (1. / float(dim)))] * dim
+    scale_val = grid_input[0]
+    actual_N = reduce(operator.mul, grid_input)
+    assert isinstance(dim, int) and dim > 0
+    assert isinstance(N,   int) and actual_N <= N
+
+    # print "Generating {} graphs for {} lattice, alpha : {}, p: {}".format(
+    #     num_graph_gen, N, alpha, p
+    #     )
+    if actual_N != N:
+        print("********\n The "+str(dim)+" root of N is not an int\n********")
+
+    # Initializes list of generated graphs (lists are thread-safe)
+    graph_list = [0] * num_graph_gen
+    # Initializes Queue used to keep track of graph-generating threads
+    graph_gen_queue = Queue()
+    for graph_num in range(num_graph_gen):
+        graph_gen_queue.put([graph_num, N, p, alpha])
+
+    i = 1
+    while (graph_gen_queue.qsize() != 0):
+        num_threads = threading.active_count()
+        if num_threads < NUM_MAX_THREADS:
+            if graph_gen_queue.qsize() != 0:
+                input_tuple = graph_gen_queue.get()
+                newThread = graphThread(i, input_tuple)
+                newThread.start()
+                i += 1
+
+    graph_gen_queue.join()
+    return graph_list
 
 '''
 Function that generates a range of values, from xmin to xmax, with
@@ -459,7 +507,6 @@ def generate_range(xlims, steps):
 '''
 ~~~ THE ACTUAL SIMULATION RUN CODE STARTS HERE ~~~
 '''
-
 if __name__ == '__main__':
 
     # start = time.time()
@@ -485,36 +532,36 @@ if __name__ == '__main__':
     num_lookahead = int(sys.argv[3]) # IE number of 'links' we look out (IE 1 is greedy)
     num_graph_gen = 25
 
-    result_values = []
-
     start = time.time()
 
-    run_values = []
+    result_values = []
     for N in ns:
         for alpha in alphas:
             for p in ps:
-                run_values.append([N, alpha, p])
-
-    # Note: may just be faster to run in for loop -- test this
-    results = ray.get([runSimulation.remote(N, dim, num_graph_gen, 0.1, 1, False, alpha, p, num_lookahead) for N, alpha, p in run_values])
+                print("Running sim for N:{}, alpha:{}, p:{}".format(N, alpha, p))
+                result = runSimulation(
+                N=N, dim=dim, num_graph_gen=num_graph_gen, pair_frac=0.1, alpha=alpha, p=p, numMax=num_lookahead
+                )
+                resultLabels = ["<T>", "Num Shortcuts", "Num Backsteps"]
+                result_value = [N, alpha]
 
     end = time.time()
     print("Ran in time: {} ".format(end-start))
-
-    with open("timing_ray.csv", "a") as tfile:
+    with open("timing_serial.csv", "a") as tfile:
         w = csv.writer(tfile)
         w.writerow([n, start-end])
-                # # Prints out results to csv file
-                # for i in range(len(result)):
-                #     for k in range(num_lookahead):
-                #         e_x = result[i][k]["e_x"]
-                #         std = math.sqrt(result[i][k]["e_x2"] - (result[i][k]["e_x"])**2.)
-                #         label = resultLabels[i]
-                #         result_value += [e_x, std]
-                #         print("Expected Value of {0}: {1} for {2}".format(label, e_x, k))
-                #         print("Std Dev of {0}: {1} for {2}".format(label, std, k))
-                # result_values.append(result_value)
 
+    #             # Prints out results to csv file
+    #             for i in range(len(result)):
+    #                 for k in range(num_lookahead):
+    #                     e_x = result[i][k]["e_x"]
+    #                     std = math.sqrt(result[i][k]["e_x2"] - (result[i][k]["e_x"])**2.)
+    #                     label = resultLabels[i]
+    #                     result_value += [e_x, std]
+    #                     print("Expected Value of {0}: {1} for {2}".format(label, e_x, k))
+    #                     print("Std Dev of {0}: {1} for {2}".format(label, std, k))
+    #             result_values.append(result_value)
+    #
     # with open('results_N_{}_dim_{}_k_{}.csv'.format(n, dim, num_lookahead), 'wb') as csvfile:
     #     w = csv.writer(csvfile)
     #     header_rows = ["N", "alpha"]
@@ -524,4 +571,4 @@ if __name__ == '__main__':
     #         header_rows += prefixes
     #     w.writerow(header_rows)
     #     for row in result_values:
-    #         w.writerow(row)
+            # w.writerow(row)

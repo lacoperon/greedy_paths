@@ -41,9 +41,6 @@ class TestHelperFunctions(object):
         G2 = nx.grid_graph([20,10], periodic=False)
         path3 = [(1,1),(1,2),(2,2),(2,1),(17,3),(17,4)]
         assert gr.calc_num_backwards_steps(G2, path3, path3[-1]) is 1
-        # path4 = []
-        # assert gr.shortcuts_taken(path4) is 0
-
 
 class TestGraphGeneration(object):
 
