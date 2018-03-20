@@ -7,7 +7,7 @@ Effect of graph perturbation on routing @ various levels of 'greed'
 import networkx as nx
 import math
 import random
-import networkit as nk
+# import networkit as nk
 from functools import reduce
 import operator
 

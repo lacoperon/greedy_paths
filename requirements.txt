@@ -3,4 +3,3 @@ networkx==1.11
 ray
 pandas
 cython
-networkit
