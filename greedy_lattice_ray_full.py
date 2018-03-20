@@ -15,11 +15,20 @@ import functools
 # TODO: Could probably make this faster using dynamic programming on each graph,
 #       Saving each node's distance to trg, and maybe also each node's neighbors
 
+def node_dist(node1, node2, G=None, graph_type="lattice", positions=None):
+    assert graph_type in ["lattice", "geometric", "hyperbolic"]
+    if graph_type == "lattice":
+        return manhattan_dist(node1, node2)
+    if graph_type == "geometric":
+        node1_loc = positions[node1]
+        node2_loc = positions[node1]
+        return manhattan_dist(node1_loc, node2_loc)
+
 '''
 Input:  Two nodes (where nodes are represented by tuples of dimension length)
 Output: The Manhattan distance between the two nodes
 '''
-def lattice_dist(node1, node2):
+def manhattan_dist(node1, node2):
     if isinstance(node1, int):
         assert isinstance(node2, int)
         return abs(node2 - node1)
@@ -30,13 +39,16 @@ def initialize_dv_counter():
     dv_counter = {
         "e_x"  : 0,
         "e_x2" : 0,
-        "n"    : 0
+        "n"    : 0, # number of successful routes
+        "fail" : 0  # number of failed routes
     }
     return dv_counter
 
 def update_dv_counter(datapoint, dv_counter):
+    if datapoint is None:
+        dv_counter["fail"] += 1
+
     if dv_counter["n"] is 0:
-        # print("hi")
         dv_counter["e_x"] = datapoint
         dv_counter["e_x2"] = datapoint ** 2
     else:
@@ -95,45 +107,45 @@ def shortcuts_taken(path):
     shortcut_vector = [not are_denovo_adj(path[i],path[i+1]) for i in step_indices]
     return sum(shortcut_vector)
 
-'''
-The compute_greedy_route function computes the 'greedy' route between two nodes,
-where you can 'look ahead' to only your neighbors
-(ie like the Kleinberg (2000) navigable small world networks paper)
-
-Input:   G    : networkx graph object,
-         src  : source node in G (a dim length tuple),
-         trg  : target node in G (a dim length tuple)
-
-Output:  steps_count : int (number of steps in the greedy path computed),
-         path        : node tuple (the nodes along the greedy path computed)
-'''
-def compute_greedy_route(G, src, trg):
-    steps_count = 0
-    path = []
-    cur_node = src
-
-    while cur_node != trg:
-        path.append(cur_node)
-
-        # find the neighbor with minimum grid distance from the target
-        min_d, min_nei = -1 , -1
-        for nei in G.neighbors(cur_node):
-            curr_d = lattice_dist(nei,trg)
-            if min_d == -1 or curr_d < min_d:
-                min_d = curr_d
-                min_nei = [nei]
-
-            if curr_d == min_d:
-                min_nei.append(nei)
-
-        # randomly selects greedy node to choose from
-        # Note: this is naive; could lead to going in circles for certain
-        #       edge cases (should deal with later -- w a set, perhaps)
-        cur_node = random.sample(min_nei,1)[0]
-        steps_count += 1
-
-    path.append(trg)
-    return steps_count, path
+# '''
+# The compute_greedy_route function computes the 'greedy' route between two nodes,
+# where you can 'look ahead' to only your neighbors
+# (ie like the Kleinberg (2000) navigable small world networks paper)
+#
+# Input:   G    : networkx graph object,
+#          src  : source node in G (a dim length tuple),
+#          trg  : target node in G (a dim length tuple)
+#
+# Output:  steps_count : int (number of steps in the greedy path computed),
+#          path        : node tuple (the nodes along the greedy path computed)
+# '''
+# def compute_greedy_route(G, src, trg):
+#     steps_count = 0
+#     path = []
+#     cur_node = src
+#
+#     while cur_node != trg:
+#         path.append(cur_node)
+#
+#         # find the neighbor with minimum grid distance from the target
+#         min_d, min_nei = -1 , -1
+#         for nei in G.neighbors(cur_node):
+#             curr_d = manhattan_dist(nei,trg)
+#             if min_d == -1 or curr_d < min_d:
+#                 min_d = curr_d
+#                 min_nei = [nei]
+#
+#             if curr_d == min_d:
+#                 min_nei.append(nei)
+#
+#         # randomly selects greedy node to choose from
+#         # Note: this is naive; could lead to going in circles for certain
+#         #       edge cases (should deal with later -- w a set, perhaps)
+#         cur_node = random.sample(min_nei,1)[0]
+#         steps_count += 1
+#
+#     path.append(trg)
+#     return steps_count, path
 
 '''
 The compute_not_so greedy_route function computes the 'greedy' route between
@@ -148,18 +160,28 @@ Input:   G    : networkx graph object,
 Output:  steps_count : int (number of steps in the greedy path computed),
          path        : node tuple (the nodes along the greedy path computed)
 '''
-def compute_not_so_greedy_route(G, src, trg, num=1):
+def compute_not_so_greedy_route(G, src, trg, num=1, graph_type="lattice"):
 
     assert num > 0 and isinstance(num, int)
 
     path = [src]
     cur_node = src
+    rep_count = 0
+
+    if graph_type == "geometric":
+        positions = nx.get_node_attributes(G, 'pos')
+    else:
+        positions = None
 
     while cur_node != trg:
         pos_greedy_paths = get_pos_ns_greedy_paths(G, cur_node, trg, num)
-        path_taken = select_ns_greedy_path(G, pos_greedy_paths, trg)
+        path_taken = select_ns_greedy_path(G, pos_greedy_paths, trg, path, graph_type, positions)
         cur_node = path_taken[1]
-        path += [path_taken[1]]
+        if cur_node in path:
+            # print("Failure to route!!!")
+            # print(cur_node, path)
+            return None, None
+        path += [cur_node]
 
     return len(path)-1, path
 
@@ -225,10 +247,11 @@ Input:   G        : networkx graph object,
 
 Output:  path_taken : path from cur_node ... trg taken
 '''
-def select_ns_greedy_path(G, pos_paths, trg):
+def select_ns_greedy_path(G, pos_paths, trg, path, graph_type, positions):
     pos_path_end_nodes = [x[-1] for x in pos_paths]
+    # print(len(pos_path_end_nodes))
 
-    pos_path_dists = list(map(lambda x : lattice_dist(x, trg),
+    pos_path_dists = list(map(lambda x : node_dist(x, trg, G, graph_type, positions),
                             pos_path_end_nodes))
     min_dist = min(pos_path_dists)
     pos_path_indices = range(len(pos_path_dists))
@@ -301,7 +324,7 @@ def choose_shortcut_partner(G, node, alpha):
     not_neighbors = list(filter(lambda x : x not in nei_set, nodes))
     # Distance between the chosen node and its 'not neighbors'
 
-    not_neighbor_dists = map(lambda x : lattice_dist(x, node),
+    not_neighbor_dists = map(lambda x : manhattan_dist(x, node),
                              not_neighbors)
     # Note that, according to Kleinberg (2000)'s logic, the probability
     # of connecting the chosen_node to a node in not neighbors should
@@ -340,8 +363,8 @@ def calc_num_backwards_steps(G, path, trg):
     num_backwards_steps = 0
 
     for i in range(len(path)-1):
-        dist1 = lattice_dist(path[i],trg)
-        dist2 = lattice_dist(path[i+1],trg)
+        dist1 = node_dist(path[i],trg)
+        dist2 = node_dist(path[i+1],trg)
         if dist1 < dist2:
             num_backwards_steps += 1
 

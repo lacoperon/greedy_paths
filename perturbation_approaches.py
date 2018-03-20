@@ -12,6 +12,8 @@ if not 'TRAVIS' in os.environ or not os.environ['TRAVIS']:
     import networkit as nk
 from functools import reduce
 import operator
+import greedy_lattice_ray_full as gr
+import ray
 
 
 
@@ -33,7 +35,6 @@ def generateGraph(graph_type, N, k=2, dim=2):
             radius = (3 * k / (4 * N * math.pi)) ** (1. / 3)
         # if we wanted to generalize, we could by https://en.wikipedia.org/wiki/N-sphere
         # (but it's of little practical value to generate networks in N-spheres)
-        print("N={}, ")
         G = nx.random_geometric_graph(n=N, radius=radius,
                                       dim=dim, pos=None)
         return G
@@ -57,13 +58,50 @@ def generateGraph(graph_type, N, k=2, dim=2):
 
 
     # also ,random hyperbolic graphs -- bc embed real-world networks well
+@ray.remote
+def performRoute(G, num_lookahead, src, trg, graph_type):
+    G  = nx.read_gpickle(G)
+    result = {}
+    for num in range(1, num_lookahead+1):
+        length, path = gr.compute_not_so_greedy_route(G, src, trg,
+                                                      num, graph_type)
+        result[num] = length
+    return result
+
+def perturbGraph(G, perturb_strategy):
+    assert perturb_strategy in ["Unimplemented"]
+    return G
+    # remove STEP nodes from the network according to some strategy
+
+    # random removal
+    # G.remove_nodes_from(random.sample(G.nodes(),int(STEP*N)))
+
+    # localized attack
+    # random_node = random.choice(G.nodes())
+    # nodes_removed = 0
+    # while nodes_removed < int(STEP*N):
+    #     pass
+        # remove random_node, its neighbors, their neighbors... until guard is False.
+
+    # shortest path attack
+    # iteratively pick two nodes and remove all nodes on the shortest path between them
+    # note that we might remove slightly more than STEP*N nodes.
+    # that's fine, just make sure to update f accordingly
+
+    # betweenness centrality attack - remove nodes according to their BC rank
+    # (non adaptively, i.e. rank is computed in the beginning and never changes)
+
+    # another attack idea: move nodes around
 
 '''
 This function contains the simulation logic for the effect of perturbation on
 routing at greed level num_lookahead, average degree k (if not grid)
 '''
 def perturb_sim(num_lookahead, k, graph_type, perturb_strategy,
-                N=1000, dim=2, STEP=0.01):
+                N=1000, dim=2, STEP=0.01, num_routes = 1000):
+
+        assert graph_type in ["lattice", "geometric"] #geom, hyperbolic don't currently work
+        assert perturb_strategy in ["Unimplemented"]
 
         print("Running {} graph sim for N:{}, num_lookahead:{}, dim:{}".format(
                     graph_type, N, num_lookahead, dim))
@@ -72,37 +110,61 @@ def perturb_sim(num_lookahead, k, graph_type, perturb_strategy,
 
         N = G.number_of_nodes()
 
+
         f = 0
         while f<1:
-            # remove STEP nodes from the network according to some strategy
 
-            # random removal
-            G.remove_nodes_from(random.sample(G.nodes(),int(STEP*N)))
+            G = perturbGraph(G, perturb_strategy)
 
-            # localized attack
-            random_node = random.choice(G.nodes())
-            nodes_removed = 0
-            while nodes_removed < int(STEP*N):
-                pass
-                # remove random_node, its neighbors, their neighbors... until guard is False.
+            # f = f + nodes_removed/float(N)
+            f = f + 0.01 # test statement, delete later
 
-            # shortest path attack
-            # iteratively pick two nodes and remove all nodes on the shortest path between them
-            # note that we might remove slightly more than STEP*N nodes.
-            # that's fine, just make sure to update f accordingly
+            graph_key = random.getrandbits(100)
+            graph_path = "ray_graphs/graph_{}".format(graph_key)
+            nx.write_gpickle(G, graph_path)
 
-            # betweenness centrality attack - remove nodes according to their BC rank
-            # (non adaptively, i.e. rank is computed in the beginning and never changes)
+            print("Greedily routing.... for f={}".format(f))
+            k_list = ["k="+str(x) for x in range(1, num_lookahead + 1)]
 
-            # another attack idea: move nodes around
+            src_list = [random.choice(G.nodes()) for _ in range(num_routes)]
+            trg_list = [random.choice([x for x in G.nodes() if x!=src_list[i] ]) for i in range(num_routes)]
+            arg_list = zip([graph_path]*num_routes, [num_lookahead]*num_routes, src_list, trg_list, [graph_type]*num_routes)
+            graph_results = ray.get([performRoute.remote(*args) for args in arg_list])
 
-            f = f + nodes_removed/float(N)
+            # Maybe should implement the caching to same trg --> independence violated?
+
+            print("We ns_greedy_routed {} times".format(len(graph_results)))
+            for num in range(1, num_lookahead+1):
+                filtered_results = [x[num] for x in graph_results]
+                # print(filtered_results)
+                # print(graph_results)
+                success_results = list(filter(lambda x : x != None, filtered_results))
+                success_sq_results = [x ** 2 for x in success_results]
+                print("For num_lookahead={}".format(num))
+                print("We successfully routed {} times".format(len(success_results)))
+                success_rate = len(success_results) / len(graph_results)
+                print("Our success rate is {}".format(success_rate))
+                if len(success_results) > 0:
+                    avg_len = reduce(lambda x,y : x+y, success_results) / len(success_results)
+                    avg_sq_len = reduce(lambda x,y : x+y, success_sq_results) / len(success_results)
+                    std_dev = math.sqrt(avg_sq_len - (avg_len ** 2))
+                    std_dev = std_dev / (2 * math.sqrt(len(success_results)))
+                else:
+                    avg_len, std_dev = "NA", "NA"
+                print("Our average path length is {} +/- {} (2SD)".format(avg_len, 2*std_dev))
+
+
+
+
+
 
             # iteratively, randomly pick source and target and record:
             # 1. average length of successful greedy(k) paths
-            # 2. average sucess rate
+            # 2. average success rate
 
 
 if __name__ == "__main__":
-    perturb_sim(num_lookahead=2, k=2, graph_type="geometric",
-                N=1000, dim=2, STEP=0.01)
+    ray.init()
+    perturb_sim(num_lookahead=2, k=50, graph_type="geometric",
+                N=10000, dim=2, STEP=0.01, perturb_strategy="Unimplemented",
+                num_routes=10000)
