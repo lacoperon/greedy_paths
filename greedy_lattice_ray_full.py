@@ -176,11 +176,14 @@ def compute_not_so_greedy_route(G, src, trg, num=1, graph_type="lattice"):
     while cur_node != trg:
         pos_greedy_paths = get_pos_ns_greedy_paths(G, cur_node, trg, num)
         path_taken = select_ns_greedy_path(G, pos_greedy_paths, trg, path, graph_type, positions)
+        if not path_taken:
+            return None, None
         cur_node = path_taken[1]
         if cur_node in path:
             # print("Failure to route!!!")
             # print(cur_node, path)
             return None, None
+
         path += [cur_node]
 
     return len(path)-1, path
@@ -253,6 +256,8 @@ def select_ns_greedy_path(G, pos_paths, trg, path, graph_type, positions):
 
     pos_path_dists = list(map(lambda x : node_dist(x, trg, G, graph_type, positions),
                             pos_path_end_nodes))
+    if len(pos_path_dists) == 0:
+        return None
     min_dist = min(pos_path_dists)
     pos_path_indices = range(len(pos_path_dists))
 

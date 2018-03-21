@@ -10,11 +10,11 @@ import greedy_lattice_ray_full as gr
 class TestHelperFunctions(object):
 
     def test_manhattan(self):
-        assert gr.lattice_dist(1,2) is 1
-        assert gr.lattice_dist(13,13) is 0
-        assert gr.lattice_dist((1,2,3),(4,5,6)) is 9
-        assert gr.lattice_dist((1,2,3),(1,1,1)) is 3
-        assert gr.lattice_dist((1,2,3,4,5),(1,2,3,4,5)) is 0
+        assert gr.node_dist(1,2) is 1
+        assert gr.node_dist(13,13) is 0
+        assert gr.node_dist((1,2,3),(4,5,6)) is 9
+        assert gr.node_dist((1,2,3),(1,1,1)) is 3
+        assert gr.node_dist((1,2,3,4,5),(1,2,3,4,5)) is 0
 
     def test_denovo_adj(self):
         assert gr.are_denovo_adj(1,2) is True
