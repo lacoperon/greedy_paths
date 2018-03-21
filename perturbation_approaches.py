@@ -68,10 +68,35 @@ def performRoute(G, num_lookahead, src, trg, graph_type):
         result[num] = length
     return result
 
-def perturbGraph(G, perturb_strategy):
-    assert perturb_strategy in ["Unimplemented"]
-    return G
-    # remove STEP nodes from the network according to some strategy
+
+'''
+This function removes STEP proportion of all nodes from the network according
+to some strategy.
+
+Input:
+    G - NetworkX graph object
+    N - Number of nodes originally in G
+    perturb_strategy - perturbation strategy being used
+    f - Counter for proportion of perturbation (f == 1 implies fully perturbed)
+    STEP - step size for perturbation
+Output:
+    G - Perturbed NetworkX graph object
+    f - Incremented perturbation counter
+'''
+# remove STEP nodes from the network according to some strategy
+def perturbGraph(G, N, perturb_strategy, f, STEP):
+    assert perturb_strategy in ["none", "random"]
+
+    if perturb_strategy == "none":
+        return(G, f+STEP)
+
+    if perturb_strategy == "random":
+        print("Random perturbation")
+        print(G.number_of_nodes())
+        G.remove_nodes_from(random.sample(G.nodes(), int(STEP*N)))
+        f += (STEP*N) / N
+        print(G.number_of_nodes())
+        return (G, f)
 
     # random removal
     # G.remove_nodes_from(random.sample(G.nodes(),int(STEP*N)))
@@ -100,8 +125,7 @@ routing at greed level num_lookahead, average degree k (if not grid)
 def perturb_sim(num_lookahead, k, graph_type, perturb_strategy,
                 N=1000, dim=2, STEP=0.01, num_routes = 1000):
 
-        assert graph_type in ["lattice", "geometric"] #geom, hyperbolic don't currently work
-        assert perturb_strategy in ["Unimplemented"]
+        assert graph_type in ["lattice", "geometric"] #hyperbolic doesn't currently work
 
         print("Running {} graph sim for N:{}, num_lookahead:{}, dim:{}".format(
                     graph_type, N, num_lookahead, dim))
@@ -110,61 +134,65 @@ def perturb_sim(num_lookahead, k, graph_type, perturb_strategy,
 
         N = G.number_of_nodes()
 
-
         f = 0
         while f<1:
 
-            G = perturbGraph(G, perturb_strategy)
-
-            # f = f + nodes_removed/float(N)
-            f = f + 0.01 # test statement, delete later
-
+            # Pickles graph to file (for quicker read by threads spawned by ray)
             graph_key = random.getrandbits(100)
             graph_path = "ray_graphs/graph_{}".format(graph_key)
             nx.write_gpickle(G, graph_path)
 
             print("Greedily routing.... for f={}".format(f))
-            k_list = ["k="+str(x) for x in range(1, num_lookahead + 1)]
 
+            # Generates list of src, trg of length len(num_routes)
             src_list = [random.choice(G.nodes()) for _ in range(num_routes)]
-            trg_list = [random.choice([x for x in G.nodes() if x!=src_list[i] ]) for i in range(num_routes)]
-            arg_list = zip([graph_path]*num_routes, [num_lookahead]*num_routes, src_list, trg_list, [graph_type]*num_routes)
-            graph_results = ray.get([performRoute.remote(*args) for args in arg_list])
+            trg_list = [random.choice([x for x in G.nodes() if x!=src_list[i] ])
+                        for i in range(num_routes)]
 
-            # Maybe should implement the caching to same trg --> independence violated?
+            # Feeds the appropriate arguments for each call of performRoute into
+            # a list, which can then be used with ray
+            arg_list = zip([graph_path]*num_routes, [num_lookahead]*num_routes,
+                           src_list, trg_list, [graph_type]*num_routes)
+            # Calls the ray remote for all argument lists in arg_list
+            graph_results = ray.get([performRoute.remote(*args)
+                                     for args in arg_list])
 
-            print("We ns_greedy_routed {} times".format(len(graph_results)))
+            # TODO: Maybe should implement the caching to same trg --> independence violated?
+
+            # We should always have tried to route `num_routes` times by now
+            assert len(graph_results) == num_routes
             for num in range(1, num_lookahead+1):
+                # Filters result for given ns_greedy lookahead
                 filtered_results = [x[num] for x in graph_results]
-                # print(filtered_results)
-                # print(graph_results)
-                success_results = list(filter(lambda x : x != None, filtered_results))
-                success_sq_results = [x ** 2 for x in success_results]
+
+                # Filters successful routes from all tried routes
+                succ_results = list(filter(lambda x : x != None, filtered_results))
+                succ_sq_results = [x ** 2 for x in succ_results]
                 print("For num_lookahead={}".format(num))
-                print("We successfully routed {} times".format(len(success_results)))
-                success_rate = len(success_results) / len(graph_results)
-                print("Our success rate is {}".format(success_rate))
-                if len(success_results) > 0:
-                    avg_len = reduce(lambda x,y : x+y, success_results) / len(success_results)
-                    avg_sq_len = reduce(lambda x,y : x+y, success_sq_results) / len(success_results)
+                print("Successfully routed {} times".format(len(succ_results)))
+
+                # Calculates the success rate (and std_dev)
+                succ_rate = len(succ_results) / len(graph_results)
+                succ_std = succ_rate * (1 - succ_rate) / math.sqrt(num_routes)
+                print("Success rate is {} +/- {}".format(succ_rate, succ_std))
+
+                # Calculates the average path length, std_dev
+                if len(succ_results) > 0:
+                    avg_len = reduce(lambda x,y : x+y, succ_results)
+                    avg_len = avg_len / len(succ_results)
+                    avg_sq_len = reduce(lambda x,y : x+y, succ_sq_results) / len(succ_results)
                     std_dev = math.sqrt(avg_sq_len - (avg_len ** 2))
-                    std_dev = std_dev / (2 * math.sqrt(len(success_results)))
+                    std_dev = std_dev / (2 * math.sqrt(len(succ_results)))
                 else:
                     avg_len, std_dev = "NA", "NA"
-                print("Our average path length is {} +/- {} (2SD)".format(avg_len, 2*std_dev))
+                print("Average path length is {} +/- {} (2SD)".format(avg_len, 2*std_dev))
 
-
-
-
-
-
-            # iteratively, randomly pick source and target and record:
-            # 1. average length of successful greedy(k) paths
-            # 2. average success rate
+            # perturbs G according to perturb_strategy, by amount STEP
+            G, f = perturbGraph(G, N, perturb_strategy, f, STEP)
 
 
 if __name__ == "__main__":
     ray.init()
     perturb_sim(num_lookahead=2, k=50, graph_type="geometric",
-                N=10000, dim=2, STEP=0.01, perturb_strategy="Unimplemented",
+                N=1000, dim=2, STEP=0.01, perturb_strategy="random",
                 num_routes=10000)
