@@ -14,6 +14,7 @@ from functools import reduce
 import operator
 import greedy_lattice_ray_full as gr
 import ray
+import matplotlib.pyplot as plt
 
 
 
@@ -53,9 +54,26 @@ def generateGraph(graph_type, N, k=2, dim=2):
         raise Exception("Hyperbolic graphs are not yet implemented")
         # http://parco.iti.kit.edu/looz/attachments/publications/HyperbolicGenerator.pdf
         # https://github.com/kit-parco/networkit/blob/19005a18180d227f3306b3d71c4ca8901b420a5b/networkit/cpp/generators/HyperbolicGenerator.cpp
-        # (Having said that, it doesn't )
+        # (The code to get coords should live in DynamicHyperbolicGenerator,
+        # according to Looz (the dude who wrote the paper)
         # https://networkit.iti.kit.edu/
 
+        # HOW MANY NODES DO WE ACTUALLY WANT TO USE?
+        # (it might be easier to use this other tool and parse in the results),
+        # but it's wayyyy slower if we want to work with hyperbolic graphs
+        # in the future -- might be worthwhile doing the networkit work imo
+
+
+def plotGraph(G, graph_type):
+    if graph_type == "lattice":
+        lattice_pos = dict([[G.nodes()[x], G.nodes()[x]] for x in range(len(G.nodes()))])
+        nx.draw_networkx(G, lattice_pos)
+        plt.show()
+
+    if graph_type == "geometric":
+        geom_pos = nx.get_node_attributes(G, 'pos')
+        nx.draw_networkx(G, geom_pos)
+        plt.show()
 
     # also ,random hyperbolic graphs -- bc embed real-world networks well
 @ray.remote
@@ -98,6 +116,17 @@ def perturbGraph(G, N, perturb_strategy, f, STEP):
         print(G.number_of_nodes())
         return (G, f)
 
+    if perturb_strategy == "localized":
+        raise Exception("Localized perturbation is currently unimplemented")
+
+    if perturb_strategy == "SP":
+        raise Exception("Shortest path perturbation is currently unimplemented")
+
+    if perturb_strategy == "BC":
+        raise Exception("BC perturbation is unimplemented")
+
+
+
     # random removal
     # G.remove_nodes_from(random.sample(G.nodes(),int(STEP*N)))
 
@@ -131,6 +160,7 @@ def perturb_sim(num_lookahead, k, graph_type, perturb_strategy,
                     graph_type, N, num_lookahead, dim))
 
         G = generateGraph(graph_type, N, k, dim)
+        plotGraph(G, graph_type)
 
         N = G.number_of_nodes()
 
@@ -189,10 +219,14 @@ def perturb_sim(num_lookahead, k, graph_type, perturb_strategy,
 
             # perturbs G according to perturb_strategy, by amount STEP
             G, f = perturbGraph(G, N, perturb_strategy, f, STEP)
+            plotGraph(G, graph_type)
 
 
 if __name__ == "__main__":
     ray.init()
-    perturb_sim(num_lookahead=2, k=50, graph_type="geometric",
-                N=1000, dim=2, STEP=0.01, perturb_strategy="random",
-                num_routes=10000)
+    perturb_sim(num_lookahead=2, k=50, graph_type="lattice",
+                N=100, dim=2, STEP=0.1, perturb_strategy="random",
+                num_routes=10)
+    # perturb_sim(num_lookahead=2, k=50, graph_type="geometric",
+    #             N=100, dim=2, STEP=0.1, perturb_strategy="random",
+    #             num_routes=10)
