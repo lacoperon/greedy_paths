@@ -17,7 +17,17 @@ import ray
 import matplotlib.pyplot as plt
 
 
+'''
+This function generates aNetworkX graph (ie geometric, lattice, hyperbolic)
+Input:
+    graph_type - type of graph (as above)
+    N - number of nodes
+    k - average degree
+    dim - dimension of graph
 
+Output:
+    NetworkX graph representing a graph with said qualities
+'''
 def generateGraph(graph_type, N, k=2, dim=2):
 
     assert graph_type in ["geometric", "lattice", "hyberbolic"]
@@ -50,6 +60,7 @@ def generateGraph(graph_type, N, k=2, dim=2):
         G = nx.grid_graph(grid_input, periodic=False) # keep it undirected
         return G
 
+    # also ,random hyperbolic graphs -- bc embed real-world networks well
     if graph_type == "hyperbolic":
         raise Exception("Hyperbolic graphs are not yet implemented")
         # http://parco.iti.kit.edu/looz/attachments/publications/HyperbolicGenerator.pdf
@@ -63,10 +74,15 @@ def generateGraph(graph_type, N, k=2, dim=2):
         # but it's wayyyy slower if we want to work with hyperbolic graphs
         # in the future -- might be worthwhile doing the networkit work imo
 
-
+'''
+This function plots a graph out using networkx's draw and matplotlib
+Input:
+    G - NetworkX graph object to graph
+    graph_type - type of graph (ie lattice, geometric, hyperbolic)
+'''
 def plotGraph(G, graph_type):
     if graph_type == "lattice":
-        lattice_pos = dict([[G.nodes()[x], G.nodes()[x]] for x in range(len(G.nodes()))])
+        lattice_pos = dict( [ (x,x) for x in G.nodes() ])
         nx.draw_networkx(G, lattice_pos)
         plt.show()
 
@@ -75,7 +91,9 @@ def plotGraph(G, graph_type):
         nx.draw_networkx(G, geom_pos)
         plt.show()
 
-    # also ,random hyperbolic graphs -- bc embed real-world networks well
+    if graph_type == "hyperbolic":
+        raise Exception("Plotting hyperbolic graphs is currently unimplemented")
+
 @ray.remote
 def performRoute(G, num_lookahead, src, trg, graph_type):
     G  = nx.read_gpickle(G)
@@ -101,7 +119,6 @@ Output:
     G - Perturbed NetworkX graph object
     f - Incremented perturbation counter
 '''
-# remove STEP nodes from the network according to some strategy
 def perturbGraph(G, N, perturb_strategy, f, STEP):
     assert perturb_strategy in ["none", "random"]
 
@@ -118,34 +135,28 @@ def perturbGraph(G, N, perturb_strategy, f, STEP):
 
     if perturb_strategy == "localized":
         raise Exception("Localized perturbation is currently unimplemented")
+        # localized attack
+        # random_node = random.choice(G.nodes())
+        # nodes_removed = 0
+        # while nodes_removed < int(STEP*N):
+        #     pass
+            # remove random_node, its neighbors, their neighbors... until guard is False.
 
     if perturb_strategy == "SP":
         raise Exception("Shortest path perturbation is currently unimplemented")
+        # shortest path attack
+        # iteratively pick two nodes and remove all nodes on the shortest path between them
+        # note that we might remove slightly more than STEP*N nodes.
+        # that's fine, just make sure to update f accordingly
 
     if perturb_strategy == "BC":
         raise Exception("BC perturbation is unimplemented")
+        # betweenness centrality attack - remove nodes according to their BC rank
+        # (non adaptively, i.e. rank is computed in the beginning and never changes)
 
-
-
-    # random removal
-    # G.remove_nodes_from(random.sample(G.nodes(),int(STEP*N)))
-
-    # localized attack
-    # random_node = random.choice(G.nodes())
-    # nodes_removed = 0
-    # while nodes_removed < int(STEP*N):
-    #     pass
-        # remove random_node, its neighbors, their neighbors... until guard is False.
-
-    # shortest path attack
-    # iteratively pick two nodes and remove all nodes on the shortest path between them
-    # note that we might remove slightly more than STEP*N nodes.
-    # that's fine, just make sure to update f accordingly
-
-    # betweenness centrality attack - remove nodes according to their BC rank
-    # (non adaptively, i.e. rank is computed in the beginning and never changes)
-
-    # another attack idea: move nodes around
+    if perturb_strategy == "motion":
+        raise Exception("Coordinate motion perturbation is unimplemented")
+        # another attack idea: move nodes around
 
 '''
 This function contains the simulation logic for the effect of perturbation on
