@@ -74,6 +74,8 @@ def generateGraph(graph_type, N, k=2, dim=2):
         # but it's wayyyy slower if we want to work with hyperbolic graphs
         # in the future -- might be worthwhile doing the networkit work imo
 
+        # https://en.wikipedia.org/wiki/Hyperbolic_geometric_graph
+
 '''
 This function plots a graph out using networkx's draw and matplotlib
 Input:
@@ -235,9 +237,9 @@ def perturb_sim(num_lookahead, k, graph_type, perturb_strategy,
 
 if __name__ == "__main__":
     ray.init()
-    perturb_sim(num_lookahead=2, k=50, graph_type="lattice",
-                N=100, dim=2, STEP=0.1, perturb_strategy="random",
-                num_routes=10)
-    # perturb_sim(num_lookahead=2, k=50, graph_type="geometric",
+    # perturb_sim(num_lookahead=2, k=50, graph_type="lattice",
     #             N=100, dim=2, STEP=0.1, perturb_strategy="random",
     #             num_routes=10)
+    perturb_sim(num_lookahead=2, k=50, graph_type="geometric",
+                N=100, dim=2, STEP=0.1, perturb_strategy="random",
+                num_routes=10)
