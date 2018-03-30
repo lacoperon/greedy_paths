@@ -15,10 +15,13 @@ import operator
 import greedy_lattice_ray_full as gr
 import ray
 import matplotlib.pyplot as plt
+import csv
+import math
+import sys
 
 
 '''
-This function generates aNetworkX graph (ie geometric, lattice, hyperbolic)
+This function generates a NetworkX graph (ie geometric, lattice, hyperbolic)
 Input:
     graph_type - type of graph (as above)
     N - number of nodes
@@ -54,7 +57,6 @@ def generateGraph(graph_type, N, k=2, dim=2):
         print("Generating {} graph with N={}, dim={}".format(graph_type, N, dim))
         print(">> Note that a grid graph's average degree isn't malleable")
         grid_input = [int(N ** (1. / dim))] * dim
-        print(grid_input)
         actual_N = reduce(operator.mul, grid_input)
         print("There are actually {} nodes".format(actual_N))
         G = nx.grid_graph(grid_input, periodic=False) # keep it undirected
@@ -128,11 +130,8 @@ def perturbGraph(G, N, perturb_strategy, f, STEP):
         return(G, f+STEP)
 
     if perturb_strategy == "random":
-        print("Random perturbation")
-        print(G.number_of_nodes())
         G.remove_nodes_from(random.sample(G.nodes(), int(STEP*N)))
         f += (STEP*N) / N
-        print(G.number_of_nodes())
         return (G, f)
 
     if perturb_strategy == "localized":
@@ -173,12 +172,14 @@ def perturb_sim(num_lookahead, k, graph_type, perturb_strategy,
                     graph_type, N, num_lookahead, dim))
 
         G = generateGraph(graph_type, N, k, dim)
-        plotGraph(G, graph_type)
+        # plotGraph(G, graph_type)
 
         N = G.number_of_nodes()
+        
+        statistics_list = []
 
         f = 0
-        while f<1:
+        while not math.isclose(1, f):
 
             # Pickles graph to file (for quicker read by threads spawned by ray)
             graph_key = random.getrandbits(100)
@@ -201,7 +202,7 @@ def perturb_sim(num_lookahead, k, graph_type, perturb_strategy,
                                      for args in arg_list])
 
             # TODO: Maybe should implement the caching to same trg --> independence violated?
-
+            
             # We should always have tried to route `num_routes` times by now
             assert len(graph_results) == num_routes
             for num in range(1, num_lookahead+1):
@@ -229,17 +230,38 @@ def perturb_sim(num_lookahead, k, graph_type, perturb_strategy,
                 else:
                     avg_len, std_dev = "NA", "NA"
                 print("Average path length is {} +/- {} (2SD)".format(avg_len, 2*std_dev))
+                
+                statistics_list.append([num, succ_rate, succ_std, avg_len, std_dev, f])
 
             # perturbs G according to perturb_strategy, by amount STEP
             G, f = perturbGraph(G, N, perturb_strategy, f, STEP)
-            plotGraph(G, graph_type)
+            # plotGraph(G, graph_type)
+            
+        file_title = "N_{}_strat_{}_STEP_{}_graph_{}_numroutes_{}_dim_{}_k_{}_numlookahead_{}.csv".format(
+                     N, perturb_strategy, STEP, graph_type, num_routes, dim, k, num_lookahead+1)
+        
+        with open("./data/" + file_title, "w") as f:
+            writer = csv.writer(f)
+            writer.writerow(["num_look", "succ_rate", "succ_std", "avg_len", "avg_std_dev", "f"])
+            writer.writerows(statistics_list)
 
 
 if __name__ == "__main__":
+    
+    N = sys.argv[1]
+    k = sys.arvg[2]
+    graph_type = sys.argv[3]
+    dim = sys.argv[4]
+    STEP = sys.argv[5]
+    perturb_strategy = sys.argv[6]
+    num_routes = sys.argv[7]
+    
+    
+    
     ray.init()
     # perturb_sim(num_lookahead=2, k=50, graph_type="lattice",
     #             N=100, dim=2, STEP=0.1, perturb_strategy="random",
     #             num_routes=10)
     perturb_sim(num_lookahead=2, k=50, graph_type="geometric",
-                N=100, dim=2, STEP=0.1, perturb_strategy="random",
-                num_routes=10)
+                N=1000, dim=2, STEP=0.01, perturb_strategy="random",
+                num_routes=10000)
