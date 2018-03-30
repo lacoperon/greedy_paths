@@ -149,7 +149,7 @@ def perturbGraph(G, N, perturb_strategy, f, STEP):
                 
         nodes_to_maybe_remove = set(nodes_to_remove) - set(nodes_to_def_remove)
         num_nodes_random_remove = int(STEP*N) - len(nodes_to_def_remove)
-        nodes_to_def_remove = random.sample(nodes_to_maybe_remove, num_nodes_random_remove)
+        nodes_to_def_remove += random.sample(nodes_to_maybe_remove, num_nodes_random_remove)
         G.remove_nodes_from(nodes_to_def_remove)
         f += int(STEP*N) / float(N)
         return (G, f)
