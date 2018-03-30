@@ -124,7 +124,7 @@ Output:
     f - Incremented perturbation counter
 '''
 def perturbGraph(G, N, perturb_strategy, f, STEP):
-    assert perturb_strategy in ["none", "random"]
+    assert perturb_strategy in ["none", "random", "localized"]
 
     if perturb_strategy == "none":
         return(G, f+STEP)
