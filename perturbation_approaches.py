@@ -248,14 +248,14 @@ def perturb_sim(num_lookahead, k, graph_type, perturb_strategy,
 
 if __name__ == "__main__":
     
-    N = sys.argv[1]
-    k = sys.arvg[2]
+    N = int(sys.argv[1])
+    k = int(sys.arvg[2])
     graph_type = sys.argv[3]
-    dim = sys.argv[4]
-    STEP = sys.argv[5]
+    dim = int(sys.argv[4])
+    STEP = float(sys.argv[5])
     perturb_strategy = sys.argv[6]
-    num_routes = sys.argv[7]
-    num_lookahead = sys.argv[8]
+    num_routes = int(sys.argv[7])
+    num_lookahead = int(sys.argv[8])
     
     
     
