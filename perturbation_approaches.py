@@ -140,13 +140,16 @@ def perturbGraph(G, N, perturb_strategy, f, STEP):
         nodes_to_remove = [random_node]
         while len(nodes_to_remove) < int(STEP*N):
             a = len(nodes_to_remove)
+            nodes_to_def_remove = nodes_to_remove
             neighbors = [G.neighbors(node) for node in nodes_to_remove]
             neighbors = set(reduce(lambda x,y : x + y, neighbors))
             nodes_to_remove = list(set(nodes_to_remove) | neighbors)
             if len(nodes_to_remove) == a:
                 nodes_to_remove += [random.choice(list(set(G.nodes()) - set(nodes_to_remove)))]
                 
-        nodes_to_actually_remove = random.sample(nodes_to_remove, int(STEP*N))
+        nodes_to_maybe_remove = set(nodes_to_remove) - set(nodes_to_def_remove)
+        num_nodes_random_remove = int(STEP*N) - len(nodes_to_def_remove)
+        nodes_to_def_remove = random.sample(nodes_to_maybe_remove, num_nodes_random_remove)
         G.remove_nodes_from(nodes_to_actually_remove)
         f += int(STEP*N) / float(N)
         return (G, f)
