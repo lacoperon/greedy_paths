@@ -137,11 +137,20 @@ def perturbGraph(G, N, perturb_strategy, f, STEP):
     if perturb_strategy == "localized":
         raise Exception("Localized perturbation is currently unimplemented")
         # localized attack
-        # random_node = random.choice(G.nodes())
-        # nodes_removed = 0
-        # while nodes_removed < int(STEP*N):
-        #     pass
-            # remove random_node, its neighbors, their neighbors... until guard is False.
+        random_node = random.choice(G.nodes())
+        nodes_to_remove = [random_node]
+        while len(nodes_to_remove) < int(STEP*N):
+            a = len(nodes_to_remove)
+            neighbors = [G.neighbors(node) for node in nodes_to_remove]
+            neighbors = set(reduce(lambda x,y : x + y, neighbors))
+            nodes_to_remove = list(set(nodes_to_remove) + neighbors)
+            if len(nodes_to_remove) == a:
+                nodes_to_remove += [random.choice(list(set(G.nodes()) - set(nodes_to_remove)))]
+                
+        nodes_to_actually_remove = random.sample(nodes_to_remove, int(STEP*N))
+        G.remove_nodes_from(nodes_to_actually_remove)
+        f += int(STEP*N) / float(N)
+        return (G, f)
 
     if perturb_strategy == "SP":
         raise Exception("Shortest path perturbation is currently unimplemented")
@@ -235,7 +244,7 @@ def perturb_sim(num_lookahead, k, graph_type, perturb_strategy,
 
             # perturbs G according to perturb_strategy, by amount STEP
             G, f = perturbGraph(G, N, perturb_strategy, f, STEP)
-            # plotGraph(G, graph_type)
+            plotGraph(G, graph_type)
             
         file_title = "N_{}_strat_{}_STEP_{}_graph_{}_numroutes_{}_dim_{}_k_{}_numlookahead_{}.csv".format(
                      N, perturb_strategy, STEP, graph_type, num_routes, dim, k, num_lookahead+1)
@@ -248,19 +257,11 @@ def perturb_sim(num_lookahead, k, graph_type, perturb_strategy,
 
 if __name__ == "__main__":
     
-    N = int(sys.argv[1])
-    k = int(sys.arvg[2])
-    graph_type = sys.argv[3]
-    dim = int(sys.argv[4])
-    STEP = float(sys.argv[5])
-    perturb_strategy = sys.argv[6]
-    num_routes = int(sys.argv[7])
-    num_lookahead = int(sys.argv[8])
-    
-    
-    
     ray.init()
+    #perturb_sim(num_lookahead=3, k=50, graph_type="geometric",
+    #           N=10000, dim=2, STEP=0.01, perturb_strategy="random",
+    #          num_routes=10000)
 
-    perturb_sim(num_lookahead, k, graph_type,
-                N, dim, STEP, perturb_strategy,
-                num_routes)
+    perturb_sim(num_lookahead=2, k=50, graph_type="geometric",
+                N=1000, dim=2, STEP=0.01, perturb_strategy="localized",
+                num_routes=100)
