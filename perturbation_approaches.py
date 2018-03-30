@@ -255,13 +255,12 @@ if __name__ == "__main__":
     STEP = sys.argv[5]
     perturb_strategy = sys.argv[6]
     num_routes = sys.argv[7]
+    num_lookahead = sys.argv[8]
     
     
     
     ray.init()
-    # perturb_sim(num_lookahead=2, k=50, graph_type="lattice",
-    #             N=100, dim=2, STEP=0.1, perturb_strategy="random",
-    #             num_routes=10)
-    perturb_sim(num_lookahead=2, k=50, graph_type="geometric",
-                N=1000, dim=2, STEP=0.01, perturb_strategy="random",
-                num_routes=10000)
+
+    perturb_sim(num_lookahead, k, graph_type,
+                N, dim, STEP, perturb_strategy,
+                num_routes)
