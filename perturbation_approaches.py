@@ -135,7 +135,6 @@ def perturbGraph(G, N, perturb_strategy, f, STEP):
         return (G, f)
 
     if perturb_strategy == "localized":
-        raise Exception("Localized perturbation is currently unimplemented")
         # localized attack
         random_node = random.choice(G.nodes())
         nodes_to_remove = [random_node]
