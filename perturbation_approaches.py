@@ -102,6 +102,15 @@ def plotGraph(G, graph_type):
 def performRoute(G, num_lookahead, src, trg, graph_type):
     G  = nx.read_gpickle(G)
     result = {}
+    
+    # Gets shortest path route between src and trg
+    
+    try:
+        result["SP"] = len(nx.shortest_path(G, src, trg)) - 1
+    except nx.exception.NetworkXNoPath:
+        result["SP"] = None
+    
+    # Gets ns_greedy_path route \forall num \in num_lookahead 
     for num in range(1, num_lookahead+1):
         length, path = gr.compute_not_so_greedy_route(G, src, trg,
                                                       num, graph_type)
@@ -140,18 +149,42 @@ def perturbGraph(G, N, perturb_strategy, f, STEP):
         nodes_to_remove = [random_node]
         while len(nodes_to_remove) < int(STEP*N):
             a = len(nodes_to_remove)
+            # We definitely want to remove nodes previously selected if
+            # there are still nodes to be selected to remove
             nodes_to_def_remove = nodes_to_remove
+            # Gets the neighbor nodes from all nodes we're currently removing
             neighbors = [G.neighbors(node) for node in nodes_to_remove]
             neighbors = set(reduce(lambda x,y : x + y, neighbors))
+            
+            # Gets the new possible total list of nodes to  remove
             nodes_to_remove = list(set(nodes_to_remove) | neighbors)
+            
+            # Gets the list of new nodes we might remove
+            remaining_nodes = list(set(G.nodes()) - set(nodes_to_remove))
+            
+            # If there are no new neighbors to be had,
+            # we break out of the loop
+            if len(remaining_nodes) == 0:
+                break
+            
+            # If there are new nodes to remove, but they're not connected to us locally,
+            # we add a random node to the nodes to remove list
             if len(nodes_to_remove) == a:
-                nodes_to_remove += [random.choice(list(set(G.nodes()) - set(nodes_to_remove)))]
+                nodes_to_remove += [random.choice(remaining_nodes)]
                 
+        # These are the nodes we want to randomly choose from to complete our set of
+        # nodes that we are going to remove at each localized attack step
         nodes_to_maybe_remove = set(nodes_to_remove) - set(nodes_to_def_remove)
+        
+        # ... but, we should make sure we actually can remove the number of nodes we want to
         num_nodes_random_remove = int(STEP*N) - len(nodes_to_def_remove)
+        max_nodes_can_remove = G.number_of_nodes() - len(nodes_to_def_remove)
+        num_nodes_random_remove = min(num_nodes_random_remove, max_nodes_can_remove)
+        
+        # ... and now, we remove the appropriate number of nodes from the graph
         nodes_to_def_remove += random.sample(nodes_to_maybe_remove, num_nodes_random_remove)
         G.remove_nodes_from(nodes_to_def_remove)
-        f += int(STEP*N) / float(N)
+        f += len(nodes_to_def_remove) / float(N)
         return (G, f)
 
     if perturb_strategy == "SP":
@@ -190,7 +223,7 @@ def perturb_sim(num_lookahead, k, graph_type, perturb_strategy,
         statistics_list = []
 
         f = 0
-        while not math.isclose(1, f):
+        while not math.isclose(1, f) and f < 1:
 
             # Pickles graph to file (for quicker read by threads spawned by ray)
             graph_key = random.getrandbits(100)
@@ -216,7 +249,12 @@ def perturb_sim(num_lookahead, k, graph_type, perturb_strategy,
             
             # We should always have tried to route `num_routes` times by now
             assert len(graph_results) == num_routes
-            for num in range(1, num_lookahead+1):
+            
+            
+            results_num_lookahead = ["SP"] + list(range(1, num_lookahead+1))
+            
+            
+            for num in results_num_lookahead:
                 # Filters result for given ns_greedy lookahead
                 filtered_results = [x[num] for x in graph_results]
 
@@ -228,7 +266,7 @@ def perturb_sim(num_lookahead, k, graph_type, perturb_strategy,
 
                 # Calculates the success rate (and std_dev)
                 succ_rate = len(succ_results) / len(graph_results)
-                succ_std = succ_rate * (1 - succ_rate) / math.sqrt(num_routes)
+                succ_std = math.sqrt(succ_rate * (1 - succ_rate) / math.sqrt(num_routes)) # Note: Make sure this is correct (always)
                 print("Success rate is {} +/- {}".format(succ_rate, succ_std))
 
                 # Calculates the average path length, std_dev
@@ -246,7 +284,7 @@ def perturb_sim(num_lookahead, k, graph_type, perturb_strategy,
 
             # perturbs G according to perturb_strategy, by amount STEP
             G, f = perturbGraph(G, N, perturb_strategy, f, STEP)
-            plotGraph(G, graph_type)
+            #plotGraph(G, graph_type)
             
         file_title = "N_{}_strat_{}_STEP_{}_graph_{}_numroutes_{}_dim_{}_k_{}_numlookahead_{}.csv".format(
                      N, perturb_strategy, STEP, graph_type, num_routes, dim, k, num_lookahead+1)
@@ -264,6 +302,6 @@ if __name__ == "__main__":
     #           N=10000, dim=2, STEP=0.01, perturb_strategy="random",
     #          num_routes=10000)
 
-    perturb_sim(num_lookahead=2, k=50, graph_type="geometric",
-                N=1000, dim=2, STEP=0.01, perturb_strategy="localized",
-                num_routes=100)
+    perturb_sim(num_lookahead=4, k=50, graph_type="geometric",
+                N=1000, dim=2, STEP=0.01, perturb_strategy="random",
+                num_routes=10000)
