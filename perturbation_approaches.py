@@ -276,22 +276,27 @@ def perturb_sim(num_lookahead, k, graph_type, perturb_strategy,
                     avg_sq_len = reduce(lambda x,y : x+y, succ_sq_results) / len(succ_results)
                     std_dev = math.sqrt(avg_sq_len - (avg_len ** 2))
                     std_dev = std_dev / (2 * math.sqrt(len(succ_results)))
+                    # Note: the below two lines are new as of 6th April 2018
+                    efficiency = [1./x for x in succ_results] + [0] * (len(graph_results) - len(succ_results))
+                    efficiency = reduce(lambda x,y : x + y, efficiency) / len(graph_results)
                 else:
                     avg_len, std_dev = "NA", "NA"
+                    efficiency = 0 # if no paths route, then the network is perfectly inefficient
                 print("Average path length is {} +/- {} (2SD)".format(avg_len, 2*std_dev))
+                print("Average routing efficiency is {}".format(efficiency))
                 
-                statistics_list.append([num, succ_rate, succ_std, avg_len, std_dev, f])
+                statistics_list.append([num, succ_rate, succ_std, avg_len, std_dev, f, efficiency])
 
             # perturbs G according to perturb_strategy, by amount STEP
             G, f = perturbGraph(G, N, perturb_strategy, f, STEP)
             #plotGraph(G, graph_type)
             
-        file_title = "N_{}_strat_{}_STEP_{}_graph_{}_numroutes_{}_dim_{}_k_{}_numlookahead_{}.csv".format(
-                     N, perturb_strategy, STEP, graph_type, num_routes, dim, k, num_lookahead+1)
+        file_title = "N_{}_strat_{}_STEP_{}_graph_{}_numroutes_{}_dim_{}_k_{}_numlookahead_{}_rand_{}.csv".format(
+                     N, perturb_strategy, STEP, graph_type, num_routes, dim, k, num_lookahead+1, random.getrandbits(15))
         
         with open("./data/" + file_title, "w") as f:
             writer = csv.writer(f)
-            writer.writerow(["num_look", "succ_rate", "succ_std", "avg_len", "avg_std_dev", "f"])
+            writer.writerow(["num_look", "succ_rate", "succ_std", "avg_len", "avg_std_dev", "f", "avg_efficiency"])
             writer.writerows(statistics_list)
 
 
@@ -303,5 +308,5 @@ if __name__ == "__main__":
     #          num_routes=10000)
 
     perturb_sim(num_lookahead=4, k=50, graph_type="geometric",
-                N=1000, dim=2, STEP=0.01, perturb_strategy="random",
+                N=1000, dim=2, STEP=0.01, perturb_strategy="localized",
                 num_routes=10000)
