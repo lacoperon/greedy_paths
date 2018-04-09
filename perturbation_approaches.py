@@ -285,7 +285,14 @@ def perturb_sim(num_lookahead, k, graph_type, perturb_strategy,
                 print("Average path length is {} +/- {} (2SD)".format(avg_len, 2*std_dev))
                 print("Average routing efficiency is {}".format(efficiency))
                 
-                statistics_list.append([num, succ_rate, succ_std, avg_len, std_dev, f, efficiency])
+                if len(list(nx.connected_component_subgraphs(G))) > 0:
+                    giant_component_size = len(list(max(nx.connected_component_subgraphs(G), key=len))) / N
+                else:
+                    giant_component_size = 0
+                    
+                print("Size of giant component is {}".format(giant_component_size))
+                
+                statistics_list.append([num, succ_rate, succ_std, avg_len, std_dev, f, efficiency, giant_component_size])
 
             # perturbs G according to perturb_strategy, by amount STEP
             G, f = perturbGraph(G, N, perturb_strategy, f, STEP)
@@ -296,7 +303,7 @@ def perturb_sim(num_lookahead, k, graph_type, perturb_strategy,
         
         with open("./data/" + file_title, "w") as f:
             writer = csv.writer(f)
-            writer.writerow(["num_look", "succ_rate", "succ_std", "avg_len", "avg_std_dev", "f", "avg_efficiency"])
+            writer.writerow(["num_look", "succ_rate", "succ_std", "avg_len", "avg_std_dev", "f", "avg_efficiency", "giant_comp_size"])
             writer.writerows(statistics_list)
 
 
@@ -308,5 +315,5 @@ if __name__ == "__main__":
     #          num_routes=10000)
 
     perturb_sim(num_lookahead=4, k=50, graph_type="geometric",
-                N=1000, dim=2, STEP=0.01, perturb_strategy="localized",
-                num_routes=10000)
+                N=1000, dim=2, STEP=0.01, perturb_strategy="random",
+                num_routes=1000)
