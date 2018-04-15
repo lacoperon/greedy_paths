@@ -132,16 +132,16 @@ Output:
     G - Perturbed NetworkX graph object
     f - Incremented perturbation counter
 '''
-def perturbGraph(G, N, perturb_strategy, f, STEP):
-    assert perturb_strategy in ["none", "random", "localized"]
+def perturbGraph(G, N, perturb_strategy, f, STEP, state=None):
+    assert perturb_strategy in ["none", "random", "localized", "localized_expanding_hole"]
 
     if perturb_strategy == "none":
-        return(G, f+STEP)
+        return(G, f+STEP, None)
 
     if perturb_strategy == "random":
         G.remove_nodes_from(random.sample(G.nodes(), int(STEP*N)))
         f += (STEP*N) / N
-        return (G, f)
+        return (G, f, None)
 
     if perturb_strategy == "localized":
         # localized attack
@@ -185,7 +185,38 @@ def perturbGraph(G, N, perturb_strategy, f, STEP):
         nodes_to_def_remove += random.sample(nodes_to_maybe_remove, num_nodes_random_remove)
         G.remove_nodes_from(nodes_to_def_remove)
         f += len(nodes_to_def_remove) / float(N)
-        return (G, f)
+        return (G, f, None)
+    
+    if perturb_strategy == "localized_expanding_hole":
+        #Note: This is currently only valid for lattice graphs
+        # MUST IMPLEMENT A 'find center node' function for it to otherwise be valid
+        
+        #ALSO NOTE: Untested
+        assert graph_type in ["lattice"]
+        assert dim is 2
+        
+        if state == None:
+            N = G.number_of_nodes()
+            center_node = tuple([int(math.sqrt(N)/2)] * 2)
+            state = [center_node]
+            curr_nodes = [center_node]
+            while len(set(G.nodes()) - set(state)) > 0:
+                neighbors = [G.neighbors(node) for node in state]
+                neighbors = reduce(lambda x,y: x+y, neighbors)
+                neighbors = list(set(neighbors))
+                neighbors = [x for x in neighbors if x not in state]
+                state += neighbors
+                curr_nodes = neighbors
+        
+        print(len(state))
+        print(state)
+        print(G.number_of_nodes())
+        assert len(state) == G.number_of_nodes()
+        nodes_to_remove = state[0:int(round(STEP*N))]
+        G.remove_nodes_from(nodes_to_remove)
+        f += len(nodes_to_remove) / float(N)
+        state = state[int(round(STEP*N)):]
+        return (G, f, state)
 
     if perturb_strategy == "SP":
         raise Exception("Shortest path perturbation is currently unimplemented")
@@ -196,6 +227,9 @@ def perturbGraph(G, N, perturb_strategy, f, STEP):
 
     if perturb_strategy == "BC":
         raise Exception("BC perturbation is unimplemented")
+        
+        
+        
         # betweenness centrality attack - remove nodes according to their BC rank
         # (non adaptively, i.e. rank is computed in the beginning and never changes)
 
@@ -209,6 +243,8 @@ routing at greed level num_lookahead, average degree k (if not grid)
 '''
 def perturb_sim(num_lookahead, k, graph_type, perturb_strategy,
                 N=1000, dim=2, STEP=0.01, num_routes = 1000):
+    
+        rand_seed = random.getrandbits(15)
 
         assert graph_type in ["lattice", "geometric"] #hyperbolic doesn't currently work
 
@@ -223,6 +259,8 @@ def perturb_sim(num_lookahead, k, graph_type, perturb_strategy,
         statistics_list = []
 
         f = 0
+        i = 0
+        state = None
         while not math.isclose(1, f) and f < 1:
 
             # Pickles graph to file (for quicker read by threads spawned by ray)
@@ -233,7 +271,14 @@ def perturb_sim(num_lookahead, k, graph_type, perturb_strategy,
             print("Greedily routing.... for f={}".format(f))
 
             # Generates list of src, trg of length len(num_routes)
+            
+            if len(G.nodes()) == 0:
+                break
+            
             src_list = [random.choice(G.nodes()) for _ in range(num_routes)]
+            
+           #  if len([x for x in G.nodes() if x!=src_list[i] ]) for i in range(num_routes)}
+            # THIS IS WHERE THE ISSUE OCCURS
             trg_list = [random.choice([x for x in G.nodes() if x!=src_list[i] ])
                         for i in range(num_routes)]
 
@@ -294,26 +339,54 @@ def perturb_sim(num_lookahead, k, graph_type, perturb_strategy,
                 
                 statistics_list.append([num, succ_rate, succ_std, avg_len, std_dev, f, efficiency, giant_component_size])
 
+            # plots the graph state every tenth frame
+            if graph_type == "lattice" and i % 10 == 0:
+                heatmap_title = "./data/heatmap_N_{}_strat_{}_graph_{}_STEP_{}_SEED_{}.csv".format(N, perturb_strategy, graph_type, STEP, rand_seed)
+                with open(heatmap_title, "a") as file:
+                    if len(G.nodes()) > 0:
+                        x, y = zip(*G.nodes())
+                        labelled_nodes = zip(x, y, [i] * len(x))
+                        writer = csv.writer(file)
+                        writer.writerows(labelled_nodes)
+            i += 1
+                
             # perturbs G according to perturb_strategy, by amount STEP
-            G, f = perturbGraph(G, N, perturb_strategy, f, STEP)
+            G, f, state = perturbGraph(G, N, perturb_strategy, f, STEP, state)
+            
+                
             #plotGraph(G, graph_type)
             
+        # plots the final graph state
+        if graph_type == "lattice":
+                with open(heatmap_title, "a") as file:
+                    if len(G.nodes()) > 0:
+                        x, y = zip(*G.nodes())
+                        labelled_nodes = zip(x, y, [i] * len(x))
+                        writer = csv.writer(file)
+                        writer.writerows(labelled_nodes)
+            
         file_title = "N_{}_strat_{}_STEP_{}_graph_{}_numroutes_{}_dim_{}_k_{}_numlookahead_{}_rand_{}.csv".format(
-                     N, perturb_strategy, STEP, graph_type, num_routes, dim, k, num_lookahead+1, random.getrandbits(15))
+                     N, perturb_strategy, STEP, graph_type, num_routes, dim, k, num_lookahead+1, rand_seed)
         
-        with open("./data/" + file_title, "w") as f:
-            writer = csv.writer(f)
+        with open("./data/" + file_title, "w") as file:
+            writer = csv.writer(file)
             writer.writerow(["num_look", "succ_rate", "succ_std", "avg_len", "avg_std_dev", "f", "avg_efficiency", "giant_comp_size"])
             writer.writerows(statistics_list)
-
-
+            
 if __name__ == "__main__":
     
     ray.init()
-    #perturb_sim(num_lookahead=3, k=50, graph_type="geometric",
-    #           N=10000, dim=2, STEP=0.01, perturb_strategy="random",
-    #          num_routes=10000)
-
-    perturb_sim(num_lookahead=4, k=50, graph_type="geometric",
-                N=1000, dim=2, STEP=0.01, perturb_strategy="random",
-                num_routes=1000)
+    
+    num_lookahead = int(sys.argv[1])
+    k             = int(sys.argv[2])
+    graph_type    = sys.argv[3]
+    N             = int(sys.argv[4])
+    dim           = int(sys.argv[5])
+    STEP          = float(sys.argv[6])
+    perturb_strat = sys.argv[7]
+    num_routes    = int(sys.argv[8])
+    
+    
+    perturb_sim(num_lookahead=num_lookahead, k=k, graph_type=graph_type,
+                N=N, dim=dim, STEP=STEP, perturb_strategy=perturb_strat,
+                num_routes=num_routes)
