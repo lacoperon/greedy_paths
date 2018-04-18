@@ -18,6 +18,7 @@ import matplotlib.pyplot as plt
 import csv
 import math
 import sys
+from collections import Counter
 
 
 '''
@@ -102,11 +103,14 @@ def plotGraph(G, graph_type):
 def performRoute(G, num_lookahead, src, trg, graph_type):
     G  = nx.read_gpickle(G)
     result = {}
+    heat_nodes = {} # dict containing node traffic
     
     # Gets shortest path route between src and trg
     
     try:
-        result["SP"] = len(nx.shortest_path(G, src, trg)) - 1
+        SP = nx.shortest_path(G, src, trg)
+        result["SP"] = len(SP) - 1
+        heat_nodes["SP"] = SP
     except nx.exception.NetworkXNoPath:
         result["SP"] = None
     
@@ -115,7 +119,9 @@ def performRoute(G, num_lookahead, src, trg, graph_type):
         length, path = gr.compute_not_so_greedy_route(G, src, trg,
                                                       num, graph_type)
         result[num] = length
-    return result
+        heat_nodes[num] = path
+        
+    return result, heat_nodes
 
 
 '''
@@ -261,7 +267,7 @@ def perturb_sim(num_lookahead, k, graph_type, perturb_strategy,
         f = 0
         i = 0
         state = None
-        while not math.isclose(1, f) and f < 1:
+        while not math.isclose(1, f) and f < 1. - STEP/4:
 
             # Pickles graph to file (for quicker read by threads spawned by ray)
             graph_key = random.getrandbits(100)
@@ -289,8 +295,7 @@ def perturb_sim(num_lookahead, k, graph_type, perturb_strategy,
             # Calls the ray remote for all argument lists in arg_list
             graph_results = ray.get([performRoute.remote(*args)
                                      for args in arg_list])
-
-            # TODO: Maybe should implement the caching to same trg --> independence violated?
+            graph_results, heat_results = zip(*graph_results)
             
             # We should always have tried to route `num_routes` times by now
             assert len(graph_results) == num_routes
@@ -299,10 +304,20 @@ def perturb_sim(num_lookahead, k, graph_type, perturb_strategy,
             results_num_lookahead = ["SP"] + list(range(1, num_lookahead+1))
             
             
+            heat_counter = {}
+            # TODO: heat counter by route type
             for num in results_num_lookahead:
                 # Filters result for given ns_greedy lookahead
                 filtered_results = [x[num] for x in graph_results]
-
+                
+                filtered_heat = [x.get(num, []) for x in heat_results]
+                filtered_heat = [x for x in filtered_heat if x != None]
+                if len(filtered_heat) > 0:
+                    filtered_heat = reduce(lambda x,y: x+y, filtered_heat)
+                    heat_counter[num] = Counter(filtered_heat)
+                else:
+                    heat_counter[num] = Counter()
+                
                 # Filters successful routes from all tried routes
                 succ_results = list(filter(lambda x : x != None, filtered_results))
                 succ_sq_results = [x ** 2 for x in succ_results]
@@ -348,6 +363,20 @@ def perturb_sim(num_lookahead, k, graph_type, perturb_strategy,
                         labelled_nodes = zip(x, y, [i] * len(x))
                         writer = csv.writer(file)
                         writer.writerows(labelled_nodes)
+                        
+                traffic_title = "./data/traffic_N_{}_strat_{}_graph_{}_STEP_{}_SEED_{}.csv".format(N, perturb_strategy, graph_type, STEP, rand_seed)
+                with open(traffic_title, "a") as file:
+                    hc_entries = heat_counter.items()
+                    print(hc_entries)
+                    for num in results_num_lookahead:
+                        hc_items = [x[1].items() for x in hc_entries if x[0] == num][0]
+                        writer = csv.writer(file)
+                        print(hc_items)
+                        if len(hc_items) > 0:
+                            hc_nodes, hc_freq = zip(*hc_items)
+                            x, y = zip(*hc_nodes)
+                            rows = zip(x, y, hc_freq, [i] * len(hc_nodes), [num]*len(hc_nodes))
+                            writer.writerows(rows) 
             i += 1
                 
             # perturbs G according to perturb_strategy, by amount STEP
@@ -357,13 +386,14 @@ def perturb_sim(num_lookahead, k, graph_type, perturb_strategy,
             #plotGraph(G, graph_type)
             
         # plots the final graph state
-        if graph_type == "lattice":
-                with open(heatmap_title, "a") as file:
-                    if len(G.nodes()) > 0:
-                        x, y = zip(*G.nodes())
-                        labelled_nodes = zip(x, y, [i] * len(x))
-                        writer = csv.writer(file)
-                        writer.writerows(labelled_nodes)
+        #if graph_type == "lattice":
+        #        with open(heatmap_title, "a") as file:
+        #            if len(G.nodes()) > 0:
+        #                x, y = zip(*G.nodes())
+        #                labelled_nodes = zip(x, y, [i] * len(x))
+        #                writer = csv.writer(file)
+        #                writer.writerows(labelled_nodes)
+                        
             
         file_title = "N_{}_strat_{}_STEP_{}_graph_{}_numroutes_{}_dim_{}_k_{}_numlookahead_{}_rand_{}.csv".format(
                      N, perturb_strategy, STEP, graph_type, num_routes, dim, k, num_lookahead+1, rand_seed)
